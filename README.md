@@ -51,6 +51,34 @@ Peak throughput on this box (canonical BB `[[72,12,6]]` cell):
   (the step-up in the figure). **This is the GPU decode-serving regime** — and
   it's exactly where the many-logical-qubit hardware is heading.
 
+## Live scheduler — measured (`serve.py` → `serve_latency_vs_load.png`)
+
+The above is the analytical model. `serve.py` is the **real system**: a running
+continuous-batching scheduler (worker thread doing actual tridec decodes against
+a live arrival process), so we measure the **reaction-latency tail** (p50/p99/
+p99.9) and whether the GPU keeps up (**bounded backlog**), not a formula.
+`bench_serve.py` drives increasing offered load and finds the knee.
+
+Measured on Metal (M4 Max, 1 ms round) — max **sustained** logical qubits/GPU
+(backlog stays bounded), and at a p99 reaction-latency SLA:
+
+| decoder | max sustained | p99 ≤ 250 ms | p99 ≤ 500 ms |
+|---|---|---|---|
+| **Relay-BP** (accurate, default) | **~12** | 8 | 8 |
+| **min-sum BP** (fast) | **~32** | 32 | 32 |
+
+Measured (12 / 32) sits a bit under the analytical model (14 / 46) — the honest
+real-system overhead (Python-threaded worker, bucket-padding waste, queueing).
+The shape matches: throughput-bound, loose SLA, 10s of qubits.
+
+**A finding the live run surfaced (and a fix that's itself an LLM-serving
+technique):** naive continuous batching produces a *new batch size almost every
+cycle*, and Triton **recompiles per new shape** — those compile stalls dominated
+the latency tail (p99 jumped to ~1.7 s). The fix is **batch-size bucketing**
+(pad each batch up to a fixed set of shapes → compile once), exactly what LLM
+servers do (bucketing / CUDA graphs). With bucketing the tail collapses to the
+steady-state decode latency. (`DecodeServer(buckets=...)`.)
+
 ## Vendor-portable (the tridec edge)
 
 Same code, higher throughput on datacenter GPUs (relay, fp64, this session's
@@ -63,20 +91,23 @@ cross-vendor curves are the obvious next measurement.
 
 ```bash
 python measure_latency.py     # measure L(B) on the local accelerator -> latency_metal.json
-python make_figure.py         # model + figure -> decode_serving_metal.png, serving_metal.json
+python make_figure.py         # analytical model + figure -> decode_serving_metal.png
+python bench_serve.py         # LIVE scheduler load sweep -> serve_latency_vs_load.png
 ```
 (needs tridec installed for the local backend: `pip install "tridec[torch]"` +
 a GPU, or the experimental Metal env.)
 
 ## Caveats / next steps
 
-- **First-order model.** `reaction ≈ 2·L(B)` is a pipelined-batching
-  approximation; a real scheduler would measure tail latency under a live
-  arrival process (bursty idle-vs-active patches, priorities). That's the
-  actual `tridec serve` build (idea #1 in the scoping doc).
+- **Python-threaded prototype.** `serve.py`'s worker is a Python thread; a
+  production server would run the decode worker out-of-process / in C++ with
+  CUDA-graph-captured bucket shapes. The measured tail is therefore a (pessimistic)
+  lower bound on what's achievable.
 - **Single-cell `L(B)`.** Uses the BB cell; real serving mixes code distances /
   families — `L(B)` is per-decoder-config.
-- **Heterogeneous load.** The real win is likely multiplexing *idle vs active*
-  patches (continuous batching's bread and butter), not the uniform stream here.
-- **Next:** (a) cross-vendor curves (H200/MI300X), (b) a live-arrival scheduler
-  with tail-latency SLAs, (c) the QEC decode-serving benchmark (scoping idea #4).
+- **Heterogeneous load not yet modeled.** The biggest expected win is multiplexing
+  *idle vs active* patches (continuous batching's bread and butter); the sweep
+  here is a uniform stream.
+- **Next:** (a) cross-vendor curves + live sweep on H200/MI300X (one pod session,
+  same code); (b) heterogeneous idle/active arrival mix; (c) the QEC
+  decode-serving benchmark (scoping idea #4 — the standard nobody's defined).
