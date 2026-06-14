@@ -79,20 +79,42 @@ the latency tail (p99 jumped to ~1.7 s). The fix is **batch-size bucketing**
 servers do (bucketing / CUDA graphs). With bucketing the tail collapses to the
 steady-state decode latency. (`DecodeServer(buckets=...)`.)
 
-## Vendor-portable (the tridec edge)
+## Vendor-portable — measured on 3 platforms (`decode_serving_xvendor.png`)
 
-Same code, higher throughput on datacenter GPUs (relay, fp64, this session's
-spot-bench): **H200 ≈ 20.7k syndromes/s**, **MI300X ≈ 14.2k/s** vs Metal's
-13.8k/s — so the qubits-per-GPU curve shifts up proportionally on CUDA/ROCm,
-**portably** (NVIDIA's CUDA-Q QEC stack is CUDA-locked; tridec is not). Full
-cross-vendor curves are the obvious next measurement.
+Same code (the v0.2.1 default decoders), measured on Metal (M4 Max), NVIDIA H200
+(CUDA), and AMD MI300X (ROCm). Logical qubits served per GPU at a 1 ms round
+(throughput model, with the live scheduler's max-sustained in parens):
+
+| platform | Relay-BP (accurate) | min-sum BP (fast) |
+|---|---|---|
+| Metal (M4 Max) | **14** (live 12) | 46 (live 32) |
+| **NVIDIA H200** (CUDA) | **18** (live 16) | **1008** (live ≥256\*) |
+| **AMD MI300X** (ROCm) | **11** (live 8) | **1177** (live ≥256\*) |
+
+\* the live BP runs are capped at the sweep's max offered load (K=256), not BP's
+knee — the Python load generator, not the decoder, is the limit there.
+
+Two honest findings:
+- **Relay-BP (the accurate default) is compute-bound and portable** — ~11–18
+  qubits/GPU everywhere. The relay schedule itself is the cost; the GPU is
+  almost incidental. That's the realistic accurate-decoding capacity per GPU.
+- **min-sum BP is launch-bound on Metal (~46k syndromes/s) but ~1.0–1.2M/s on
+  the datacenter GPUs** (their kernel launches are ~free), so a single H200/
+  MI300X serves **hundreds of logical qubits** with the fast decoder at
+  **single-digit-ms p99** — but BP trades accuracy for that. The
+  accuracy-vs-capacity choice is the real knob.
+
+Vendor-portable throughout (NVIDIA's CUDA-Q QEC stack is CUDA-locked; tridec is
+not). Per-platform L(B) curves in `latency_{metal,h200,mi300x}.json`; live runs
+in `serve_measured_{h200,mi300x}.json`.
 
 ## Run
 
 ```bash
-python measure_latency.py     # measure L(B) on the local accelerator -> latency_metal.json
+python measure_latency.py     # measure L(B) on the local accelerator -> latency_<plat>.json
 python make_figure.py         # analytical model + figure -> decode_serving_metal.png
 python bench_serve.py         # LIVE scheduler load sweep -> serve_latency_vs_load.png
+python make_xvendor.py        # combined cross-vendor figure -> decode_serving_xvendor.png
 ```
 (needs tridec installed for the local backend: `pip install "tridec[torch]"` +
 a GPU, or the experimental Metal env.)
@@ -108,6 +130,11 @@ a GPU, or the experimental Metal env.)
 - **Heterogeneous load not yet modeled.** The biggest expected win is multiplexing
   *idle vs active* patches (continuous batching's bread and butter); the sweep
   here is a uniform stream.
-- **Next:** (a) cross-vendor curves + live sweep on H200/MI300X (one pod session,
-  same code); (b) heterogeneous idle/active arrival mix; (c) the QEC
-  decode-serving benchmark (scoping idea #4 — the standard nobody's defined).
+- **Load generator caps the fast-decoder live runs.** On datacenter GPUs the BP
+  decoder (~1M syndromes/s) outruns the Python producer, so the live BP knee
+  (~1000 qubits) isn't reached — the throughput model captures it; a faster
+  (multi-thread / batched-arrival) load generator would close this.
+- **Next:** (a) ✅ cross-vendor curves + live sweep on H200/MI300X — *done*
+  (`decode_serving_xvendor.png`); (b) heterogeneous idle/active arrival mix +
+  a faster load generator; (c) the QEC decode-serving benchmark (scoping idea
+  #4 — the standard nobody's defined).
