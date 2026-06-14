@@ -122,23 +122,30 @@ def run_load(decoder, syndrome_pool, K, t_round, duration,
             next_round += t_round
         else:
             time.sleep(min(0.0003, max(0.0, next_round - now)))
+    # SUSTAINED = kept up in real time: by load-end the decoder is within ~0.5 s
+    # of arrivals (only a small in-flight backlog left). OVERLOADED = a large
+    # undecoded backlog remains. Reproducible + robust to decoder speed / batch /
+    # round-drain artifacts (unlike a latency-trend, which trips on launch jitter
+    # and batch ramp-up). decoded_during_load = snapshot before the drain.
+    decoded_during_load = len(srv.latencies)
     srv._stop = True
     drain_start = time.perf_counter()
     while not srv.q.empty() and (time.perf_counter() - drain_start) < drain_cap:
         time.sleep(0.02)
     srv.stop()
-    Lat = np.array(srv.latencies) * 1e3
+    Lat = np.array(srv.latencies) * 1e3                  # ms, completion order
     decoded = len(Lat)
-    max_backlog_rounds = int(max(srv.backlog)) if srv.backlog else 0
-    overloaded = max_backlog_rounds > 200 or decoded < emitted * 0.9   # >~200 rounds behind
+    offered = emitted / duration
+    overloaded = bool(decoded_during_load < emitted * (1.0 - 0.5 / duration))
     return {
         "K": K, "active_frac": active_frac, "t_round_ms": t_round*1e3,
-        "emitted": emitted, "decoded": decoded,
+        "emitted": emitted, "decoded": decoded, "decoded_during_load": decoded_during_load,
         "throughput_per_s": decoded / max(time.perf_counter() - t0, 1e-9),
+        "offered_per_s": offered,
         "p50_ms": float(np.percentile(Lat, 50)) if decoded else None,
         "p99_ms": float(np.percentile(Lat, 99)) if decoded else None,
         "p999_ms": float(np.percentile(Lat, 99.9)) if decoded else None,
         "max_batch_used": int(max(srv.batch_sizes)) if srv.batch_sizes else 0,
-        "max_backlog_rounds": max_backlog_rounds,
+        "max_backlog_rounds": int(max(srv.backlog)) if srv.backlog else 0,
         "overloaded": bool(overloaded),
     }

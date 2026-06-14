@@ -1,0 +1,224 @@
+{
+  "code": "bb72_r6_p0.003_Z",
+  "backend": "metal",
+  "slas_ms": [
+    100,
+    250,
+    500
+  ],
+  "rows": [
+    {
+      "decoder": "tridec Relay-BP (accurate)",
+      "accurate": true,
+      "fails": 39,
+      "shots": 2000,
+      "ler": 0.0195,
+      "ler_ci95": [
+        0.014297175281702396,
+        0.02654517473239054
+      ],
+      "serving": {
+        "max_sustained_qubits": 8,
+        "p99_at_max_ms": 196.793611232424,
+        "peak_throughput_per_s": 10890.66510971527,
+        "sustained_at_sla": {
+          "100ms": 0,
+          "250ms": 8,
+          "500ms": 8
+        },
+        "sweep": [
+          {
+            "K": 4,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 16000,
+            "decoded": 16000,
+            "decoded_during_load": 15832,
+            "throughput_per_s": 3955.4196594975274,
+            "offered_per_s": 4000.0,
+            "p50_ms": 68.02100001368672,
+            "p99_ms": 107.11755441385321,
+            "p999_ms": 111.50678587274236,
+            "max_batch_used": 256,
+            "max_backlog_rounds": 0,
+            "overloaded": false
+          },
+          {
+            "K": 8,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 32000,
+            "decoded": 32000,
+            "decoded_during_load": 30672,
+            "throughput_per_s": 7777.888379606673,
+            "offered_per_s": 8000.0,
+            "p50_ms": 140.67364548100159,
+            "p99_ms": 196.793611232424,
+            "p999_ms": 204.9573397588722,
+            "max_batch_used": 1024,
+            "max_backlog_rounds": 0,
+            "overloaded": false
+          },
+          {
+            "K": 16,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 64000,
+            "decoded": 64000,
+            "decoded_during_load": 46224,
+            "throughput_per_s": 10890.66510971527,
+            "offered_per_s": 16000.0,
+            "p50_ms": 849.2248959955759,
+            "p99_ms": 1919.6512886253206,
+            "p999_ms": 1955.6478528402552,
+            "max_batch_used": 4096,
+            "max_backlog_rounds": 844,
+            "overloaded": true
+          }
+        ]
+      }
+    },
+    {
+      "decoder": "tridec min-sum BP (fast)",
+      "accurate": false,
+      "fails": 168,
+      "shots": 2000,
+      "ler": 0.084,
+      "ler_ci95": [
+        0.07262596653157229,
+        0.0969690753120545
+      ],
+      "serving": {
+        "max_sustained_qubits": 32,
+        "p99_at_max_ms": 268.00966884009534,
+        "peak_throughput_per_s": 32253.09473915007,
+        "sustained_at_sla": {
+          "100ms": 8,
+          "250ms": 16,
+          "500ms": 32
+        },
+        "sweep": [
+          {
+            "K": 4,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 16000,
+            "decoded": 16000,
+            "decoded_during_load": 15876,
+            "throughput_per_s": 3959.006874994128,
+            "offered_per_s": 4000.0,
+            "p50_ms": 42.26072900928557,
+            "p99_ms": 67.74806075030942,
+            "p999_ms": 80.73249643715157,
+            "max_batch_used": 256,
+            "max_backlog_rounds": 0,
+            "overloaded": false
+          },
+          {
+            "K": 8,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 32000,
+            "decoded": 32000,
+            "decoded_during_load": 31664,
+            "throughput_per_s": 7902.693557510542,
+            "offered_per_s": 8000.0,
+            "p50_ms": 41.430583980400115,
+            "p99_ms": 78.16607507993353,
+            "p999_ms": 96.16627942025929,
+            "max_batch_used": 1024,
+            "max_backlog_rounds": 0,
+            "overloaded": false
+          },
+          {
+            "K": 16,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 64000,
+            "decoded": 64000,
+            "decoded_during_load": 61488,
+            "throughput_per_s": 15548.64313390437,
+            "offered_per_s": 16000.0,
+            "p50_ms": 145.4490830656141,
+            "p99_ms": 235.26798434206327,
+            "p999_ms": 244.24964368844266,
+            "max_batch_used": 4096,
+            "max_backlog_rounds": 0,
+            "overloaded": false
+          },
+          {
+            "K": 32,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 128000,
+            "decoded": 128000,
+            "decoded_during_load": 123744,
+            "throughput_per_s": 31037.544807838534,
+            "offered_per_s": 32000.0,
+            "p50_ms": 185.17935392446816,
+            "p99_ms": 268.00966884009534,
+            "p999_ms": 282.0258464876268,
+            "max_batch_used": 4096,
+            "max_backlog_rounds": 34,
+            "overloaded": false
+          },
+          {
+            "K": 64,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 256000,
+            "decoded": 256000,
+            "decoded_during_load": 124032,
+            "throughput_per_s": 32253.09473915007,
+            "offered_per_s": 64000.0,
+            "p50_ms": 2080.08741697995,
+            "p99_ms": 3917.948750780206,
+            "p999_ms": 3941.412649807646,
+            "max_batch_used": 4096,
+            "max_backlog_rounds": 1934,
+            "overloaded": true
+          }
+        ]
+      }
+    },
+    {
+      "decoder": "relay_bp Rust oracle (CPU, accurate)",
+      "accurate": true,
+      "fails": 35,
+      "shots": 2000,
+      "ler": 0.0175,
+      "ler_ci95": [
+        0.012609677536999498,
+        0.02424034094749549
+      ],
+      "serving": {
+        "max_sustained_qubits": 0,
+        "p99_at_max_ms": null,
+        "peak_throughput_per_s": 890.6629355372396,
+        "sustained_at_sla": {
+          "100ms": 0,
+          "250ms": 0,
+          "500ms": 0
+        },
+        "sweep": [
+          {
+            "K": 4,
+            "active_frac": 1.0,
+            "t_round_ms": 1.0,
+            "emitted": 6784,
+            "decoded": 6784,
+            "decoded_during_load": 2108,
+            "throughput_per_s": 890.6629355372396,
+            "offered_per_s": 1696.0,
+            "p50_ms": 3440.0554164894857,
+            "p99_ms": 5050.280266380869,
+            "p999_ms": 5050.401915912516,
+            "max_batch_used": 4096,
+            "max_backlog_rounds": 0,
+            "overloaded": true
+          }
+        ]
+      }
+    }
+  ]
+}
