@@ -34,7 +34,7 @@ for algo, name, col, Ks in configs:
         flag = " OVERLOADED" if r["overloaded"] else ""
         print(f"  {algo:5s} K={K:>3} | p50 {r['p50_ms']:6.1f} p99 {r['p99_ms']:7.1f} "
               f"p99.9 {r['p999_ms']:7.1f} ms | batch<= {r['max_batch_used']:>4} "
-              f"backlog<= {r['max_backlog']:>5} | thr {r['throughput_per_s']:.0f}/s{flag}")
+              f"backlogR<= {r['max_backlog_rounds']:>4} | thr {r['throughput_per_s']:.0f}/s{flag}")
     results[algo] = rows
     Karr = np.array([r["K"] for r in rows])
     p99  = np.array([r["p99_ms"] for r in rows])

@@ -108,6 +108,29 @@ Vendor-portable throughout (NVIDIA's CUDA-Q QEC stack is CUDA-locked; tridec is
 not). Per-platform L(B) curves in `latency_{metal,h200,mi300x}.json`; live runs
 in `serve_measured_{h200,mi300x}.json`.
 
+## Scaling to ~1000 qubits live (`decode_serving_knee.png`)
+
+With a **round-batched load generator** (the producer enqueues one array per
+round, not one syndrome at a time, so it's O(rounds/s) not O(syndromes/s)) the
+live scheduler reaches min-sum BP's real knee on datacenter GPUs:
+
+| platform | min-sum BP (fast) | Relay-BP (accurate) |
+|---|---|---|
+| **H200** | **1024 qubits @ p99 13 ms** (~995k syndromes/s) | 16 @ p99 339 ms |
+| **MI300X** | **1024 qubits @ p99 7 ms** (~977k syndromes/s) | 8 @ p99 565 ms |
+
+So **one datacenter GPU serves ~1024 logical qubits live at single-digit-ms
+p99** with the fast decoder (overloads at K=1536). Relay-BP, compute-bound,
+holds ~8–16 at 100s-of-ms. (`bench_hetero.py`.)
+
+**Heterogeneous load — honest negative.** Making 90% of qubits idle
+(error-free) barely helped: **none for min-sum BP** (fixed 30 iterations — idle
+costs the same), and **small/inconsistent for Relay-BP** (MI300X 8→16, H200
+16→16). Relay's per-shot early-exit only saves the relay-leg *tail*; the fixed
+`pre_iter=80` first leg runs over every shot regardless, so it dominates and
+idle shots aren't much cheaper. A serving win from heterogeneity would need a
+decoder whose *bulk* cost is per-shot-adaptive, not just its tail.
+
 ## Run
 
 ```bash
@@ -115,6 +138,8 @@ python measure_latency.py     # measure L(B) on the local accelerator -> latency
 python make_figure.py         # analytical model + figure -> decode_serving_metal.png
 python bench_serve.py         # LIVE scheduler load sweep -> serve_latency_vs_load.png
 python make_xvendor.py        # combined cross-vendor figure -> decode_serving_xvendor.png
+python bench_hetero.py        # round-batched load gen, high-K + heterogeneous -> serve_hetero.json
+python make_knee.py           # the ~1024-qubit knee figure -> decode_serving_knee.png
 ```
 (needs tridec installed for the local backend: `pip install "tridec[torch]"` +
 a GPU, or the experimental Metal env.)
@@ -127,14 +152,12 @@ a GPU, or the experimental Metal env.)
   lower bound on what's achievable.
 - **Single-cell `L(B)`.** Uses the BB cell; real serving mixes code distances /
   families — `L(B)` is per-decoder-config.
-- **Heterogeneous load not yet modeled.** The biggest expected win is multiplexing
-  *idle vs active* patches (continuous batching's bread and butter); the sweep
-  here is a uniform stream.
-- **Load generator caps the fast-decoder live runs.** On datacenter GPUs the BP
-  decoder (~1M syndromes/s) outruns the Python producer, so the live BP knee
-  (~1000 qubits) isn't reached — the throughput model captures it; a faster
-  (multi-thread / batched-arrival) load generator would close this.
+- ✅ **Faster (round-batched) load generator — done** (`serve.py`); it reaches
+  BP's ~1024-qubit knee live on datacenter GPUs (`decode_serving_knee.png`).
+- ✅ **Heterogeneous idle/active mix — done, honest negative** (above): little
+  benefit at this config (BP fixed-iter; relay's `pre_iter` floor). Documented,
+  not pursued further unless a per-shot-adaptive-bulk decoder motivates it.
 - **Next:** (a) ✅ cross-vendor curves + live sweep on H200/MI300X — *done*
-  (`decode_serving_xvendor.png`); (b) heterogeneous idle/active arrival mix +
-  a faster load generator; (c) the QEC decode-serving benchmark (scoping idea
-  #4 — the standard nobody's defined).
+  (`decode_serving_xvendor.png`); (b) ✅ faster load gen + heterogeneous —
+  *done*; (c) mixed code-distance fleets (the real heterogeneity lever); (d) the
+  QEC decode-serving benchmark (scoping idea #4 — the standard nobody's defined).
