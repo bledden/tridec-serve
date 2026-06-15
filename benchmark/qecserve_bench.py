@@ -86,6 +86,41 @@ def bposd_entry(dem, name="ldpc BP-OSD (accurate, CPU)"):
     return Entry(name, True, _W())
 
 
+def cudaq_entry(dem, name="NVIDIA CUDA-Q nv-qldpc+OSD (GPU)"):
+    """NVIDIA's CUDA-Q QEC GPU LDPC decoder (cudaq-qec). CUDA-only -> runs on the
+    H200, auto-skipped on AMD/Metal -- exactly the vendor-lock point the benchmark
+    makes concrete (the head-to-head we CAN'T port to MI300X). GPU sparse batch
+    decoding (use_sparsity=True). NOTE: we set use_osd=True -- the default is BP
+    only (LER ~5% on this BB cell); OSD post-processing brings it to ~1.5%, the
+    fair accurate-decoder config (and it's nearly free here, BP dominates the
+    runtime). The NVIDIA *Ising* pre-decoder is a research artifact, not in
+    cudaq-qec 0.6.0, so it stays a documented number (README), not a runnable
+    entry here."""
+    import cudaq_qec as qec
+    from tridec.dem import extract
+    ex = extract(dem)
+    Hd = ex["H"].toarray().astype(np.uint8)
+    pri = list(np.clip(np.asarray(ex["priors"]), 1e-6, 1 - 1e-6))
+    Lo = ex["Lo"].toarray().astype(np.uint8)
+    dec = qec.get_decoder("nv-qldpc-decoder", Hd, error_rate_vec=pri,
+                          use_sparsity=True, use_osd=True)
+    # pick the fastest accepted batch-input form once (ndarray if allowed, else
+    # list-of-lists) so the serving number isn't penalised by needless conversion
+    try:
+        dec.decode_batch(np.zeros((2, Hd.shape[0]), dtype=np.uint8)); as_list = False
+    except Exception:
+        as_list = True
+
+    class _W:
+        backend = "cuda"
+        def decode_batch(self, dets, device=None):
+            d = np.asarray(dets).astype(np.uint8)
+            rb = dec.decode_batch([row.tolist() for row in d] if as_list else d)
+            E = (np.array([np.asarray(x.result) for x in rb]) > 0.5).astype(np.uint8)
+            return ((E @ Lo.T) & 1).astype(bool)
+    return Entry(name, True, _W())
+
+
 # --- accuracy tier (LER + Wilson CI), the standard axis ---
 def accuracy(entry, dets, obs):
     pred = entry.decoder.decode_batch(np.ascontiguousarray(dets))
@@ -152,6 +187,7 @@ def build_codes():
           tridec_entry(bb, "bp", "tridec min-sum BP")]
     be += _opt("ldpc BP-OSD", lambda: bposd_entry(bb))
     be += _opt("relay_bp oracle", lambda: relaybp_entry(bb))
+    be += _opt("cudaq nv-qldpc", lambda: cudaq_entry(bb))
     codes.append(("BB [[72,12,6]] qLDPC (p=0.003)", np.asarray(bd, bool), np.asarray(bo, bool), be))
     # --- surface d=5 (the canonical code; matching IS the reference here) ---
     sc = stim.Circuit.generated("surface_code:rotated_memory_z", distance=5, rounds=5,
@@ -162,6 +198,7 @@ def build_codes():
     se = [tridec_entry(plain, "relay", "tridec Relay-BP"),
           tridec_entry(plain, "bp", "tridec min-sum BP")]
     se += _opt("PyMatching MWPM", lambda: pymatching_entry(sc.detector_error_model(decompose_errors=True)))
+    se += _opt("cudaq nv-qldpc", lambda: cudaq_entry(plain))
     codes.append(("surface d=5 rotated_memory_z (p=0.003)", np.asarray(sd, bool), np.asarray(so, bool), se))
     return codes
 
