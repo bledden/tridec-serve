@@ -209,6 +209,7 @@ def accuracy(entry, dets, obs):
 #      knee lives) + MULTI-SEED so the knee gets an error bar, not a single point.
 KS_GRID = (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384,
            512, 768, 1024, 1536)
+SURFACE_DISTANCES = (3, 5, 7)   # v3 distance sweep
 
 
 def _sweep(decoder, pool, Ks, t_round, duration, seed):
@@ -281,19 +282,22 @@ def build_codes():
     be += _opt("cudaq nv-qldpc", lambda: cudaq_entry(bb))
     be += _opt("cudaq pre-decode cascade", lambda: cudaq_predecode_entry(bb))  # v2b
     codes.append(("BB [[72,12,6]] qLDPC (p=0.003)", np.asarray(bd, bool), np.asarray(bo, bool), be))
-    # --- surface d=5 (the canonical code; matching IS the reference here) ---
-    sc = stim.Circuit.generated("surface_code:rotated_memory_z", distance=5, rounds=5,
-            after_clifford_depolarization=0.003, after_reset_flip_probability=0.003,
-            before_measure_flip_probability=0.003, before_round_data_depolarization=0.003)
-    sd, so = sc.compile_detector_sampler(seed=0).sample(2000, separate_observables=True)
-    plain = sc.detector_error_model(decompose_errors=False)
-    se = [tridec_entry(plain, "relay", "tridec Relay-BP"),
-          tridec_entry(plain, "bp", "tridec min-sum BP")]
-    se += _opt("PyMatching MWPM", lambda: pymatching_entry(sc.detector_error_model(decompose_errors=True)))
-    se += _opt("cudaq nv-qldpc", lambda: cudaq_entry(plain))
-    # NB: cudaq_tn_entry (tensor-network) is intractable at d=5/5-rounds (TN
-    # treewidth blows up); measured separately at small scale -- see tn_small.py.
-    codes.append(("surface d=5 rotated_memory_z (p=0.003)", np.asarray(sd, bool), np.asarray(so, bool), se))
+    # --- surface code DISTANCE SWEEP (v3): d=3,5,7 -- accuracy improves with d,
+    #     serving capacity drops (bigger code = more work/syndrome = fewer q/GPU).
+    #     matching IS the reference here; nv-qldpc on H200 (CUDA-only). TN omitted
+    #     (intractable at d>=5/multi-round; see tn_small.py).
+    for d in SURFACE_DISTANCES:
+        sc = stim.Circuit.generated("surface_code:rotated_memory_z", distance=d, rounds=d,
+                after_clifford_depolarization=0.003, after_reset_flip_probability=0.003,
+                before_measure_flip_probability=0.003, before_round_data_depolarization=0.003)
+        sd, so = sc.compile_detector_sampler(seed=0).sample(2000, separate_observables=True)
+        plain = sc.detector_error_model(decompose_errors=False)
+        se = [tridec_entry(plain, "relay", "tridec Relay-BP"),
+              tridec_entry(plain, "bp", "tridec min-sum BP")]
+        se += _opt("PyMatching MWPM", lambda dem=sc.detector_error_model(decompose_errors=True): pymatching_entry(dem))
+        se += _opt("cudaq nv-qldpc", lambda p=plain: cudaq_entry(p))
+        codes.append((f"surface d={d} rotated_memory_z (p=0.003)",
+                      np.asarray(sd, bool), np.asarray(so, bool), se))
     return codes
 
 

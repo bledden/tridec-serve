@@ -1,12 +1,14 @@
-# QEC decode-serving benchmark (v2)
+# QEC decode-serving benchmark (v3)
 
 A **vendor-portable, decoder-agnostic** benchmark for quantum error-correction
 decoders that adds the axis existing benchmarks miss — measured across
 **three GPU vendors** (Apple Metal, AMD MI300X/ROCm, NVIDIA H200/CUDA) and
 **six decoder families**, including a head-to-head against **NVIDIA's own
-CUDA-Q QEC GPU decoders** (`nv-qldpc` + tensor-network). v2 adds **multi-seed
+CUDA-Q QEC GPU decoders** (`nv-qldpc` + tensor-network). v2 added **multi-seed
 error bars** on the serving knee and a **pre-decode-stage** architecture (the
-slot NVIDIA's Ising AI pre-decoder would fill).
+slot NVIDIA's Ising AI pre-decoder would fill). **v3 adds a surface-code
+distance sweep (d=3/5/7)** — quantifying how the accuracy↔capacity tradeoff
+scales with code distance — run on both the H200 and an AMD MI300X (ROCm7).
 
 ## The gap it fills
 
@@ -46,26 +48,62 @@ throughput (syn/s).
 LER % (95% Wilson CI) · sustained qubits/GPU (median of 3 seeds [min–max]).
 2000 shots, p=0.003.
 
-| code | decoder | Metal (M4 Max) | MI300X (ROCm) | H200 (CUDA) |
+| code | decoder | Metal (M4 Max) | MI300X (ROCm7)‡ | H200 (CUDA) |
 |---|---|---|---|---|
-| **BB qLDPC** | tridec Relay-BP | 1.95% · 8q | 1.95% · 12q [8-12] | 1.95% · **16q [12-16]** |
+| **BB qLDPC** | tridec Relay-BP | 1.95% · 8q | 1.80% · 16q [6-16] | 1.95% · **16q [12-16]** |
 | | tridec min-sum BP | 8.40% · 32q | 7.80% · **1024q** | 7.80% · **1024q** |
-| | `ldpc` BP-OSD (CPU) | 1.55% · 0q | **1.15%** · 0q [0-1] | 1.15% · 0q |
-| | `relay_bp` oracle (CPU) | 1.75% · 0q | 1.40% · 8q [1-8] | 1.40% · 0q |
+| | `ldpc` BP-OSD (CPU) | 1.55% · 0q | **1.15%** · 0q | 1.15% · 0q |
+| | `relay_bp` oracle (CPU) | 1.75% · 0q | 1.40% · 0q | 1.40% · 0q |
 | | **NVIDIA `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **1.45% · 12q [8-12]** |
 | | **NVIDIA pre-decode cascade** | — *(CUDA-only)* | — *(CUDA-only)* | **1.25% · 2q [2-3]** |
 | **surface d=5** | tridec Relay-BP | 1.30% · 0q | 1.60% · 0q | 1.60% · 1q [0-1] |
-| | tridec min-sum BP | 7.65% · 16q | 7.90% · 1024q | 7.90% · 512q |
-| | **PyMatching MWPM** | **0.10% · 1536q** | **0.15% · 1536q** | **0.15% · 1024q** |
+| | tridec min-sum BP | 7.65% · 16q | 7.90% · 768q | 7.90% · 512q |
+| | **PyMatching MWPM** | **0.10% · 1536q** | **0.15% · 1024q** | **0.15% · 1024q** |
 | | **NVIDIA `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **0.55% · 12q [8-12]** |
 | | **NVIDIA tensor-network** | — | — | *intractable at d=5* † |
+
+‡ MI300X = a DigitalOcean MI300X droplet on **ROCm 7 / triton 3.4**. (RunPod's
+MI300X — rocm6.2/triton3.1 — became unusable mid-session: a host `memlock` cap of
+8 MB broke ROCm/HSA after a stop/resume, on both the resumed and a freshly
+deployed pod; DigitalOcean's ROCm7 image has proper ulimits.) The relay megakernel
+block/warps were **re-tuned for the rocm7 stack** to (1024,16) — the shipped
+(512,8), tuned on rocm6.2/triton3.1, gave only 4q for BB relay here; (1024,16)
+recovers 16q (parity with the H200). min-sum BP & matching needed no re-tune
+(already at parity: 1024q / 1024-1536q).
 
 † TN decoder is exact-ish but **intractable at surface d=5/5-rounds** (TN
 treewidth blows up; >90 s/decode). Measured at small scale: surface d=3/3-rounds
 ≈ 5% LER at ~4 decodes/s (→ 0 q served). It's an accuracy decoder that can't
 serve and doesn't scale — a clean negative.
 
-Findings:
+## Surface-code distance sweep (v3) — `benchmark_distance_{h200,mi300x}.png`
+
+The serving question that only this benchmark asks of code distance: **stronger
+protection costs serving capacity.** Sweeping surface d=3/5/7 (rounds = d), on
+both the H200 and the AMD MI300X (ROCm7):
+
+| d | PyMatching LER · cap | min-sum BP LER · cap | nv-qldpc+OSD (H200) |
+|---|---|---|---|
+| **3** | 0.55% · 1536q | 4.25% · 1536q | 0.90% · 96q |
+| **5** | 0.15% · 1024q | 7.90% · 512–768q | 0.55% · 12q |
+| **7** | 0.35%† · 256q | 15.2% · 192–256q | 0.60% · 3q |
+
+(LER and capacity per platform; matching/BP capacities shown are representative
+across H200/MI300X — they agree closely. †d=7 matching LER is noise-limited at
+2000 shots — 7/2000 — but stays sub-percent.)
+
+Two clean findings, **identical across both vendors** (it's decoder physics):
+- **Capacity drops monotonically with distance** — bigger code = more
+  detectors/error-mechanisms per shot = fewer logical qubits/GPU. PyMatching
+  1536→1024→256; min-sum BP 1536→~600→~220; nv-qldpc 96→12→3. This is the
+  quantified *serving cost of stronger protection*.
+- **BP-family LER *rises* with distance on the surface code** (min-sum BP
+  4.25%→7.90%→**15.2%**; relay 0.75%→1.60%→**6.05%**), while **matching and
+  `nv-qldpc`+OSD stay low** — the textbook weakness of plain BP on topological
+  codes (loops/degeneracy), made quantitative. Reinforces "matching is the right
+  tool for surface; BP-family is for qLDPC."
+
+Findings (BB qLDPC + d=5 slice):
 - **Right tool per code.** On **surface**, matching dominates *both* axes
   (0.10–0.15%, ~1024–1536 q/GPU) — the specialized decoder beats every BP-family
   decoder outright. On **BB qLDPC** (matching N/A), it's a BP + capacity story:
@@ -137,12 +175,14 @@ AMD-collaboration vehicle + a direct demonstration of GPU × serving × QEC.
 ## Run
 
 ```bash
-python qecserve_bench.py        # code x decoder matrix: accuracy + serving -> results_<plat>.json
-python make_pareto.py h200      # accuracy-vs-capacity figure -> benchmark_pareto_h200.png
+python qecserve_bench.py        # code x decoder x distance matrix -> results_<plat>.json
+python make_pareto.py h200      # accuracy-vs-capacity Pareto -> benchmark_pareto_h200.png
+python make_distance.py h200    # distance sweep (LER & capacity vs d) -> benchmark_distance_h200.png
 ```
 (`pip install "tridec[torch,decoders]"` + a GPU/Metal; `pymatching` for the
 surface matching entry; `cudaq-qec` on CUDA for the NVIDIA `nv-qldpc` entry —
-auto-skipped on AMD/Metal, which is the point.)
+auto-skipped on AMD/Metal, which is the point. On AMD, ROCm7 wants the relay
+megakernel re-tuned — see `relay_retune.py`.)
 
 ## Limitations / next
 
@@ -160,6 +200,11 @@ auto-skipped on AMD/Metal, which is the point.)
   negative, above).
 - ✅ **Pre-decode-stage architecture** — built (`cudaq_predecode_entry`); needs a
   cheap pre (Ising) for a serving win.
-- **Next:** drop in NVIDIA's **Ising** model if/when public; neural decoders
-  (AlphaQubit-style); more surface distances + mixed code-distance fleets;
-  out-of-process / CUDA-graph scheduler to lift the prototype's pessimistic floor.
+- ✅ **Surface-code distance sweep d=3/5/7 (v3)** — cross-vendor (H200 + AMD
+  MI300X/ROCm7); capacity-vs-distance + the BP-LER-rises finding, above.
+- ✅ **AMD MI300X re-validated on ROCm7** (DigitalOcean) after RunPod's MI300X
+  was lost to a host memlock cap; relay megakernel re-tuned for triton-3.4.
+- **Next:** mixed code-distance *fleets* (one GPU serving qubits at different
+  distances — the real heterogeneity lever); drop in NVIDIA's **Ising** model if
+  public; neural decoders (AlphaQubit-style); out-of-process / CUDA-graph
+  scheduler to lift the prototype's pessimistic serving floor.

@@ -5,7 +5,8 @@ import sys, json, numpy as np, matplotlib; matplotlib.use("Agg"); import matplot
 plat = sys.argv[1] if len(sys.argv) > 1 else "metal"
 d = json.load(open(f"results_{plat}.json"))
 codes = sorted({r["code"] for r in d["rows"]})
-cmap = {codes[0]: "#1f77b4", codes[1] if len(codes) > 1 else "_": "#d62728"}
+_palette = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#8c564b"]
+cmap = {c: _palette[i % len(_palette)] for i, c in enumerate(codes)}
 fig, ax = plt.subplots(figsize=(9.5, 6))
 for r in d["rows"]:
     s = r["serving"]
