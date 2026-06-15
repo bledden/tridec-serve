@@ -8,11 +8,19 @@ codes = sorted({r["code"] for r in d["rows"]})
 cmap = {codes[0]: "#1f77b4", codes[1] if len(codes) > 1 else "_": "#d62728"}
 fig, ax = plt.subplots(figsize=(9.5, 6))
 for r in d["rows"]:
-    cap = max(r["serving"]["max_sustained_qubits"], 0.5)   # floor for log axis
+    s = r["serving"]
+    cap = max(s["max_sustained_qubits"], 0.5)   # floor for log axis
+    lo = max(s.get("max_sustained_lo", cap), 0.5); hi = max(s.get("max_sustained_hi", cap), 0.5)
     ler = max(r["ler"]*100, 0.05)
+    yci = r.get("ler_ci95", [r["ler"], r["ler"]])
+    ylo = max(yci[0]*100, 0.04); yhi = max(yci[1]*100, ler)
     col = cmap.get(r["code"], "#555")
     mk = "o" if r["accurate"] else "^"
-    ax.scatter(cap, ler, s=150, color=col, marker=mk, zorder=3, edgecolor="k", linewidth=0.5)
+    # v2a: error bars -- x = multi-seed knee range, y = 95% Wilson LER CI
+    ax.errorbar(cap, ler, xerr=[[max(cap-lo, 0)], [max(hi-cap, 0)]],
+                yerr=[[max(ler-ylo, 0)], [max(yhi-ler, 0)]], fmt=mk, color=col,
+                ms=11, zorder=3, ecolor=col, elinewidth=1.2, capsize=3,
+                markeredgecolor="k", markeredgewidth=0.5)
     short = (r["decoder"].replace("tridec ", "").replace(" (accurate, CPU)", "/CPU")
              .replace(" MWPM (accurate)", "").replace(" Rust oracle (CPU, accurate)", "/CPU")
              .replace("NVIDIA CUDA-Q ", "").replace(" (GPU)", ""))

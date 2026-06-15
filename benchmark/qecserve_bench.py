@@ -126,6 +126,73 @@ def cudaq_entry(dem, name="NVIDIA CUDA-Q nv-qldpc+OSD (GPU)"):
     return Entry(name, True, _W())
 
 
+def cudaq_predecode_entry(dem, name="CUDA-Q nv-qldpc PRE->+OSD cascade (GPU)"):
+    """v2b -- the PRE-DECODE STAGE architecture (the slot NVIDIA's Ising AI
+    pre-decoder would fill). A cheap BP-only pre-pass produces a partial error
+    estimate e_pre; the RESIDUAL syndrome s ^ (H @ e_pre) goes to the accurate
+    +OSD 'main'; the estimates combine (e = e_pre ^ e_main). Correct by
+    construction for ANY pre. Here the 'pre' is a fast BP-only nv-qldpc proxy --
+    NVIDIA's Ising model would be a far cheaper, smarter pre. This measures
+    whether a cheap pre-pass + accurate cleanup helps; CUDA-only."""
+    import cudaq_qec as qec
+    from tridec.dem import extract
+    ex = extract(dem)
+    Hd = ex["H"].toarray().astype(np.uint8)
+    pri = list(np.clip(np.asarray(ex["priors"]), 1e-6, 1 - 1e-6))
+    Lo = ex["Lo"].toarray().astype(np.uint8)
+    pre = qec.get_decoder("nv-qldpc-decoder", Hd, error_rate_vec=pri,
+                          use_sparsity=True, use_osd=False, max_iterations=10,
+                          bp_batch_size=4096)
+    main = qec.get_decoder("nv-qldpc-decoder", Hd, error_rate_vec=pri,
+                           use_sparsity=True, use_osd=True, bp_batch_size=4096)
+
+    def _e(dec, d):
+        rb = dec.decode_batch(d)
+        return (np.array([np.asarray(x.result) for x in rb]) > 0.5).astype(np.uint8)
+
+    class _W:
+        backend = "cuda"
+        def decode_batch(self, dets, device=None):
+            d = np.asarray(dets).astype(np.uint8)
+            e_pre = _e(pre, d)                              # (n, E) partial estimate
+            s_res = (d ^ (e_pre @ Hd.T)) & 1               # residual syndrome (n, D)
+            e = e_pre ^ _e(main, s_res.astype(np.uint8))   # combine: e_pre ^ e_main
+            return ((e @ Lo.T) & 1).astype(bool)
+    return Entry(name, True, _W())
+
+
+def cudaq_tn_entry(dem, name="NVIDIA CUDA-Q tensor-network (GPU)"):
+    """v2b -- NVIDIA CUDA-Q QEC tensor-network decoder (cudaq-qec[tensor-network-
+    decoder]): contracts the Tanner-graph TN (cuTensorNet) to compute P(logical
+    flip | syndrome) directly. Exact-ish; surface-code scale only (TN treewidth
+    blows up on qLDPC). Float syndromes; result is the logical-flip prob, so no Lo
+    multiply. CUDA-only."""
+    import cudaq_qec as qec
+    from tridec.dem import extract
+    ex = extract(dem)
+    Hd = ex["H"].toarray().astype(np.uint8)
+    pri = list(np.clip(np.asarray(ex["priors"]), 1e-6, 1 - 1e-6))
+    Lo = ex["Lo"].toarray().astype(np.uint8)
+    nL = Lo.shape[0]
+    dec = qec.get_decoder("tensor_network_decoder", Hd, logical_obs=Lo, noise_model=pri)
+    try:
+        dec.decode_batch(np.zeros((2, Hd.shape[0]), np.float32)); batch = True
+    except Exception:
+        batch = False
+
+    def _res(x):
+        return np.asarray(x.result if hasattr(x, "result") else x).ravel()
+
+    class _W:
+        backend = "cuda"
+        def decode_batch(self, dets, device=None):
+            d = np.asarray(dets).astype(np.float32)
+            rb = dec.decode_batch(d) if batch else [dec.decode(r.tolist()) for r in d]
+            P = np.array([_res(x) for x in rb]).reshape(len(d), nL)
+            return P > 0.5
+    return Entry(name, True, _W())
+
+
 # --- accuracy tier (LER + Wilson CI), the standard axis ---
 def accuracy(entry, dets, obs):
     pred = entry.decoder.decode_batch(np.ascontiguousarray(dets))
@@ -138,23 +205,43 @@ def accuracy(entry, dets, obs):
 # --- serving tier (the NEW axis): max sustained qubits/GPU + capacity at a few
 #     SLA budgets (the latency-capacity tradeoff; one fixed SLA is unfair across
 #     decoders whose base latency differs by 100x). "sustained" = bounded backlog.
-def serving(entry, pool, slas_ms=(100, 250, 500), t_round=1e-3,
-            Ks=(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 1536), duration=4.0):
+# v2a: FINER K grid in the contested 0-64 zone (where the accurate decoders'
+#      knee lives) + MULTI-SEED so the knee gets an error bar, not a single point.
+KS_GRID = (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384,
+           512, 768, 1024, 1536)
+
+
+def _sweep(decoder, pool, Ks, t_round, duration, seed):
     rows = []
     for K in Ks:
-        r = run_load(entry.decoder, pool, K=K, t_round=t_round, duration=duration)
+        r = run_load(decoder, pool, K=K, t_round=t_round, duration=duration, seed=seed)
         rows.append(r)
         if r["overloaded"]:
             break
     ok = [r for r in rows if not r["overloaded"] and r["p99_ms"] is not None]
-    max_sus = ok[-1]["K"] if ok else 0
+    return rows, (ok[-1]["K"] if ok else 0), ok
+
+
+def serving(entry, pool, slas_ms=(100, 250, 500), t_round=1e-3,
+            Ks=KS_GRID, duration=3.0, seeds=(0, 1, 2)):
+    per_seed, peak, last_rows, last_ok = [], 0.0, [], []
+    for sd in seeds:
+        rows, mx, ok = _sweep(entry.decoder, pool, Ks, t_round, duration, sd)
+        per_seed.append(mx)
+        peak = max(peak, max((r["throughput_per_s"] for r in rows), default=0.0))
+        last_rows, last_ok = rows, ok
+    srt = sorted(per_seed)
+    median = srt[len(srt) // 2]
     return {
-        "max_sustained_qubits": max_sus,
-        "p99_at_max_ms": ok[-1]["p99_ms"] if ok else None,
-        "peak_throughput_per_s": max((r["throughput_per_s"] for r in rows), default=0.0),
-        "sustained_at_sla": {f"{s}ms": max((r["K"] for r in ok if r["p99_ms"] <= s),
+        "max_sustained_qubits": median,            # median over seeds
+        "max_sustained_seeds": per_seed,
+        "max_sustained_lo": min(per_seed),
+        "max_sustained_hi": max(per_seed),
+        "p99_at_max_ms": last_ok[-1]["p99_ms"] if last_ok else None,
+        "peak_throughput_per_s": peak,
+        "sustained_at_sla": {f"{s}ms": max((r["K"] for r in last_ok if r["p99_ms"] <= s),
                                            default=0) for s in slas_ms},
-        "sweep": rows,
+        "sweep": last_rows,
     }
 
 
@@ -164,11 +251,10 @@ def run(entries, dets, obs, pool):
         a = accuracy(e, dets, obs)
         s = serving(e, pool)
         rows.append({"decoder": e.name, "accurate": e.accurate, **a, "serving": s})
-        sla = s["sustained_at_sla"]
-        print(f"  {e.name:28s} LER {a['ler']*100:5.2f}%  max {s['max_sustained_qubits']:>4}q "
-              f"(p99 {s['p99_at_max_ms'] or 0:.0f}ms) | @SLA "
-              f"100ms:{sla['100ms']:>4} 250ms:{sla['250ms']:>4} 500ms:{sla['500ms']:>4} | "
-              f"peak {s['peak_throughput_per_s']:>9.0f} syn/s")
+        ci = a["ler_ci95"]
+        print(f"  {e.name:30s} LER {a['ler']*100:5.2f}% [{ci[0]*100:4.2f}-{ci[1]*100:4.2f}]  "
+              f"max {s['max_sustained_qubits']:>4}q [{s['max_sustained_lo']}-{s['max_sustained_hi']}] "
+              f"(p99 {s['p99_at_max_ms'] or 0:.0f}ms) | peak {s['peak_throughput_per_s']:>9.0f} syn/s")
     return rows
 
 
@@ -193,6 +279,7 @@ def build_codes():
     be += _opt("ldpc BP-OSD", lambda: bposd_entry(bb))
     be += _opt("relay_bp oracle", lambda: relaybp_entry(bb))
     be += _opt("cudaq nv-qldpc", lambda: cudaq_entry(bb))
+    be += _opt("cudaq pre-decode cascade", lambda: cudaq_predecode_entry(bb))  # v2b
     codes.append(("BB [[72,12,6]] qLDPC (p=0.003)", np.asarray(bd, bool), np.asarray(bo, bool), be))
     # --- surface d=5 (the canonical code; matching IS the reference here) ---
     sc = stim.Circuit.generated("surface_code:rotated_memory_z", distance=5, rounds=5,
@@ -204,6 +291,8 @@ def build_codes():
           tridec_entry(plain, "bp", "tridec min-sum BP")]
     se += _opt("PyMatching MWPM", lambda: pymatching_entry(sc.detector_error_model(decompose_errors=True)))
     se += _opt("cudaq nv-qldpc", lambda: cudaq_entry(plain))
+    # NB: cudaq_tn_entry (tensor-network) is intractable at d=5/5-rounds (TN
+    # treewidth blows up); measured separately at small scale -- see tn_small.py.
     codes.append(("surface d=5 rotated_memory_z (p=0.003)", np.asarray(sd, bool), np.asarray(so, bool), se))
     return codes
 
