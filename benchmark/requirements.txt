@@ -1,0 +1,25 @@
+# QEC decode-serving benchmark — pinned deps for a clean-checkout reproduction.
+# Receipt platform for the exact-count tiers: see receipts/MANIFEST.md.
+#
+# Core (CPU-runnable; routing + accuracy + the PyMatching/CPU lanes):
+numpy>=1.24
+scipy>=1.10
+stim==1.15.0
+pymatching==2.3.1          # surface-code matching decoder
+ldpc==2.4.1                # BP-OSD (qLDPC accurate baseline)
+relay_bp                   # Rust relay-bp oracle (CPU reference)
+beliefmatching             # transitive dep of relay_bp
+matplotlib>=3.7            # figures (make_pareto / make_distance / make_fleet)
+sinter                     # stim sampling helpers
+#
+# GPU decoder library (the tridec relay/min-sum BP lanes). Install separately
+# with the right extra for your accelerator; it brings torch + triton:
+#   pip install "tridec[torch]"           # CUDA / ROCm (triton backend)
+#   (Apple Metal: the experimental triton-metal env — see tridec docs)
+# tridec>=0.2.1
+#
+# NVIDIA CUDA-Q QEC decoders (nv-qldpc + tensor-network) — CUDA-ONLY, optional.
+# Auto-skipped on AMD/Metal (that's the vendor-lock point). On ROCm7 the relay
+# megakernel wants re-tuning (see ../relay_retune.py).
+#   pip install cudaq-qec                  # then: pip install -U "nvidia-nvjitlink-cu12>=12.5"
+#   pip install "cudaq-qec[tensor-network-decoder]"   # for the TN entry

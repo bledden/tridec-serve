@@ -44,6 +44,18 @@ residual) — the architectural slot for an AI pre-decoder. Next: neural
 
 ## Results — code × decoder × **platform** matrix
 
+> **A correction we lead with (why you can trust these numbers).** An earlier
+> cut of this benchmark reported NVIDIA's `nv-qldpc` at 1–2 q/GPU and claimed
+> tridec serves *~16× more on NVIDIA's own H200*. That was **wrong** — an artifact
+> of NVIDIA's *default* `bp_batch_size` (which runs the decode ~serially), not
+> their decoder. A verify-before-claiming pass (a timing breakdown + a config
+> sweep of *their* decoder) caught it before anything went out; with its proper
+> config (+ OSD) `nv-qldpc` is **1.45% LER · ~12 q — Pareto-close** with tridec
+> Relay-BP (1.95% · 16 q), neither dominating. Corrected in commit `8ba1722`. The
+> durable claim survives and is stronger: **`nv-qldpc` is CUDA-locked — it cannot
+> run on the MI300X at all; tridec runs on both.** Every comparative number below
+> was run through the same discipline (sweep the competitor's obvious knobs first).
+
 Per-platform Pareto: `benchmark_pareto_{metal,mi300x,h200}.png`. `max q` = max
 sustained logical qubits/GPU at a 1 ms round (bounded backlog); `peak` = peak
 throughput (syn/s).
@@ -206,17 +218,23 @@ becomes a *standard* only if adopted. The realistic value is a clean, novel,
 vendor-neutral serving benchmark = a portfolio artifact + a natural
 AMD-collaboration vehicle + a direct demonstration of GPU × serving × QEC.
 
-## Run
+## Run (reproducible from a clean checkout)
+
+Paths are relative + env-overridable (`TRIDEC_PLAT`, `TRIDEC_FIX`); fixtures are
+bundled in `fixtures/`; deps pinned in `requirements.txt`; artifact provenance in
+`receipts/MANIFEST.md`. No per-machine source edits.
 
 ```bash
-python qecserve_bench.py        # code x decoder x distance matrix -> results_<plat>.json
-python make_pareto.py h200      # accuracy-vs-capacity Pareto -> benchmark_pareto_h200.png
-python make_distance.py h200    # distance sweep (LER & capacity vs d) -> benchmark_distance_h200.png
+pip install -r requirements.txt                  # + "tridec[torch]" for GPU lanes; cudaq-qec on CUDA
+TRIDEC_PLAT=h200 python qecserve_bench.py         # accuracy + serving matrix -> results_h200.json
+python make_pareto.py h200                        # accuracy-vs-capacity Pareto
+python make_distance.py h200                      # surface distance sweep d=3/5/7
+TRIDEC_PLAT=h200 python fleetbench.py             # v4 fleets -> results_fleet_h200.json
+python make_fleet.py h200                         # v4 fleet knee figure
 ```
-(`pip install "tridec[torch,decoders]"` + a GPU/Metal; `pymatching` for the
-surface matching entry; `cudaq-qec` on CUDA for the NVIDIA `nv-qldpc` entry —
-auto-skipped on AMD/Metal, which is the point. On AMD, ROCm7 wants the relay
-megakernel re-tuned — see `relay_retune.py`.)
+The `cudaq-qec` (NVIDIA `nv-qldpc` + TN) lanes are CUDA-only and **auto-skip** on
+AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tuning
+(`relay_retune.py`). A CPU-only checkout still runs the routing + PyMatching lanes.
 
 ## Limitations / next
 

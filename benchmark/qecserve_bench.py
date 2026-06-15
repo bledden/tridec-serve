@@ -8,13 +8,15 @@ SLA. Any decoder plugs in via a 3-line adapter; results are reported per
 peak throughput). Vendor-portable by construction: Metal / CUDA / ROCm, with
 AMD MI300X a first-class citizen (NVIDIA's CUDA-Q QEC stack is CUDA-locked).
 """
-import sys, json, time, numpy as np, stim
-sys.path.insert(0, "/Users/bledden/Documents/tridec-serve")
+import os, sys, json, time, numpy as np, stim
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))   # tridec-serve root (serve.py)
 from serve import run_load
 import tridec
 from tridec.validation import wilson_ci
 
-FIX = "/Users/bledden/Documents/tridec/tests/fixtures/bb72/"
+# bundled fixtures by default; override with TRIDEC_FIX for a pod's repo path.
+FIX = os.environ.get("TRIDEC_FIX", os.path.join(HERE, "fixtures") + os.sep)
 
 
 # --- the decoder-agnostic adapter: any entry just needs decode_batch + flags ---
@@ -312,5 +314,7 @@ if __name__ == "__main__":
             r["code"] = label
         all_rows += rows
     out = {"backend": backend, "slas_ms": [100, 250, 500], "rows": all_rows}
-    json.dump(out, open("/Users/bledden/Documents/tridec-serve/benchmark/results_metal.json", "w"), indent=2)
-    print("\nsaved benchmark/results_metal.json")
+    plat = os.environ.get("TRIDEC_PLAT", backend)   # e.g. metal / mi300x / h200
+    results = os.path.join(HERE, f"results_{plat}.json")
+    json.dump(out, open(results, "w"), indent=2)
+    print("\nsaved", os.path.basename(results))

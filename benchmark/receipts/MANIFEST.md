@@ -1,0 +1,47 @@
+# Receipts — provenance for the benchmark result artifacts
+
+The result JSONs + figures live in `../` (next to the `make_*.py` that read them).
+This manifest pins where each came from, so a reader can tell which platform /
+vintage / config produced each number. All runs: p=0.003, depolarizing+readout,
+stim seed=0 sampling. "Pin artifacts, not generators" — the `.dem`/`.stim` inputs
+are bundled in `../fixtures/`.
+
+## How to reproduce (clean checkout)
+```bash
+pip install -r ../requirements.txt          # + tridec[torch] for GPU lanes; cudaq-qec on CUDA
+TRIDEC_PLAT=<plat> python ../qecserve_bench.py   # accuracy + serving matrix -> results_<plat>.json
+python ../make_pareto.py <plat>             # Pareto figure
+python ../make_distance.py <plat>           # distance sweep figure
+TRIDEC_PLAT=<plat> python ../fleetbench.py  # v4 fleets -> results_fleet_<plat>.json
+python ../make_fleet.py <plat>              # fleet figure
+```
+Paths are relative / env-overridable (`TRIDEC_FIX`, `TRIDEC_PLAT`); no source edits
+needed per machine. CPU-only checkouts run the routing + PyMatching lanes; the
+tridec GPU lanes need a triton backend; the `nv-qldpc`/TN lanes need CUDA.
+
+## Artifacts
+
+| file | platform / stack | shots · seeds | scope (harness vintage) |
+|---|---|---|---|
+| `results_h200.json` | NVIDIA H200, CUDA (torch 2.4.1+cu124 / triton 3.0) | 2000 · 3 | v3 — BB qLDPC + surface d=3/5/7; 6 decoder families incl. NVIDIA `nv-qldpc`+OSD & pre-decode cascade |
+| `results_mi300x.json` | AMD MI300X, ROCm7 (DigitalOcean; torch 2.9+rocm7 / triton 3.4) | 2000 · 3 | v3 — BB + surface d=3/5/7; tridec relay/BP + BP-OSD + relay_bp + PyMatching (relay re-tuned (1024,16) for rocm7) |
+| `results_metal.json` | Apple M4 Max, Metal (triton-metal) | 2000 · 1 | v1 — BB + surface d=5 (single-seed, pre-CI vintage; not re-run with the multi-seed harness) |
+| `results_fleet_h200.json` | NVIDIA H200, CUDA | per-lane · 3 | v4 — mixed-distance (384q) + mixed-family (512q) fleets, tridec BP per lane |
+| `benchmark_pareto_{h200,mi300x,metal}.png` | — | — | accuracy-vs-capacity Pareto per platform (v3; error bars where multi-seed) |
+| `benchmark_distance_{h200,mi300x}.png` | — | — | surface distance sweep d=3/5/7 (v3) |
+| `benchmark_fleet_h200.png` | — | — | v4 fleet p99-vs-size knee |
+
+## Known non-reproducible-by-construction items (documented, not bugs)
+- stim's circuit→DEM is platform-dependent at the ulp level, and its seeded
+  sampler is platform-dependent → exact cross-platform count reproduction is
+  impossible. The bundled `.dem`/`.stim` bytes are the canonical inputs; the
+  statistical (Wilson-CI) tier binds cross-platform.
+- The NVIDIA `nv-qldpc` numbers require its non-default config (`use_osd=True`,
+  `bp_batch_size`) — defaults badly under-report it (see the README correction /
+  commit `8ba1722`). The relay megakernel block/warps are per-stack tuned.
+- RunPod MI300X is unusable (host `memlock` cap → ROCm/HSA fails); the MI300X
+  receipts are from a DigitalOcean ROCm7 box.
+
+## Pending
+- v4 fleet **cross-vendor on MI300X** (needs a DO ROCm7 box; the RunPod one is
+  memlock-broken). Harness ready: `TRIDEC_PLAT=mi300x python ../fleetbench.py`.
