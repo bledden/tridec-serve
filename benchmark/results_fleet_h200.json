@@ -1,0 +1,118 @@
+{
+  "backend": "triton",
+  "surface_decoder": "tridec-bp",
+  "mixed_distance": {
+    "max_fleet": 384,
+    "seeds": [
+      384,
+      384,
+      384
+    ],
+    "lo": 384,
+    "hi": 384,
+    "last_sweep": [
+      {
+        "scale": 4,
+        "fleet_K": 12,
+        "overloaded": false,
+        "p99_ms": 5.098353596404195
+      },
+      {
+        "scale": 8,
+        "fleet_K": 24,
+        "overloaded": false,
+        "p99_ms": 5.422110985964535
+      },
+      {
+        "scale": 16,
+        "fleet_K": 48,
+        "overloaded": false,
+        "p99_ms": 5.135553702712104
+      },
+      {
+        "scale": 32,
+        "fleet_K": 96,
+        "overloaded": false,
+        "p99_ms": 5.970622552558752
+      },
+      {
+        "scale": 64,
+        "fleet_K": 192,
+        "overloaded": false,
+        "p99_ms": 14.941201629117135
+      },
+      {
+        "scale": 128,
+        "fleet_K": 384,
+        "overloaded": false,
+        "p99_ms": 51.346808327361984
+      },
+      {
+        "scale": 256,
+        "fleet_K": 768,
+        "overloaded": true,
+        "p99_ms": 2565.108956657359
+      }
+    ]
+  },
+  "mixed_family": {
+    "max_fleet": 512,
+    "seeds": [
+      512,
+      512,
+      512
+    ],
+    "lo": 512,
+    "hi": 512,
+    "last_sweep": [
+      {
+        "scale": 4,
+        "fleet_K": 8,
+        "overloaded": false,
+        "p99_ms": 3.86084987781942
+      },
+      {
+        "scale": 8,
+        "fleet_K": 16,
+        "overloaded": false,
+        "p99_ms": 3.612018199637532
+      },
+      {
+        "scale": 16,
+        "fleet_K": 32,
+        "overloaded": false,
+        "p99_ms": 3.6767927650362293
+      },
+      {
+        "scale": 32,
+        "fleet_K": 64,
+        "overloaded": false,
+        "p99_ms": 3.6943499092012604
+      },
+      {
+        "scale": 64,
+        "fleet_K": 128,
+        "overloaded": false,
+        "p99_ms": 3.897245926782499
+      },
+      {
+        "scale": 128,
+        "fleet_K": 256,
+        "overloaded": false,
+        "p99_ms": 5.078149549663073
+      },
+      {
+        "scale": 256,
+        "fleet_K": 512,
+        "overloaded": false,
+        "p99_ms": 16.59179379232235
+      },
+      {
+        "scale": 512,
+        "fleet_K": 1024,
+        "overloaded": true,
+        "p99_ms": 910.3742347005789
+      }
+    ]
+  }
+}
