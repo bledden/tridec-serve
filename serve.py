@@ -83,7 +83,16 @@ class DecodeServer:
                 pad[:L] = syn; pad[L:] = syn[0]
                 syn = pad
             self.batch_sizes.append(b)
-            self.decoder.decode_batch(syn)
+            try:
+                self.decoder.decode_batch(syn)
+            except Exception:
+                # device can't handle this batch size (e.g. Metal buffer limit):
+                # cap buckets below it and drop this batch so the worker thread
+                # survives instead of dying mid-run.
+                smaller = tuple(x for x in self.buckets if x < b)
+                self.buckets = smaller or (self.buckets[0],)
+                self.max_batch = self.buckets[-1]
+                continue
             done = time.perf_counter()
             self.latencies.extend((done - tt).tolist())
 

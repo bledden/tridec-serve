@@ -49,6 +49,43 @@ def relaybp_entry(dem, name="relay_bp Rust oracle (CPU, accurate)"):
     return Entry(name, True, _Wrap())
 
 
+def pymatching_entry(dem, name="PyMatching MWPM (accurate)"):
+    """External, DIFFERENT decoder family (matching, not BP). Surface codes /
+    matchable DEMs only. Reference decoder everyone compares to."""
+    import pymatching
+    m = pymatching.Matching.from_detector_error_model(dem)
+
+    class _W:
+        backend = "cpu"
+        def decode_batch(self, dets, device=None):
+            d = np.asarray(dets).astype(np.uint8)
+            preds = np.asarray(m.decode_batch(d))
+            return preds.astype(bool).reshape(len(d), -1)
+    return Entry(name, True, _W())
+
+
+def bposd_entry(dem, name="ldpc BP-OSD (accurate, CPU)"):
+    """External, accurate qLDPC decoder (BP + ordered-statistics post-proc)."""
+    import ldpc
+    from tridec.dem import extract
+    ex = extract(dem)
+    H = ex["H"]; pri = list(np.clip(ex["priors"], 1e-6, 1 - 1e-6))
+    Lo = ex["Lo"].toarray().astype(np.uint8)
+    dec = ldpc.BpOsdDecoder(H, error_channel=pri, max_iter=30, bp_method="minimum_sum",
+                            ms_scaling_factor=0.625, osd_method="osd_cs", osd_order=10)
+
+    class _W:
+        backend = "cpu"
+        def decode_batch(self, dets, device=None):
+            d = np.asarray(dets).astype(np.uint8)
+            out = np.zeros((len(d), Lo.shape[0]), dtype=bool)
+            for i in range(len(d)):
+                e = np.asarray(dec.decode(d[i]), dtype=np.uint8)
+                out[i] = (Lo @ e) & 1
+            return out
+    return Entry(name, True, _W())
+
+
 # --- accuracy tier (LER + Wilson CI), the standard axis ---
 def accuracy(entry, dets, obs):
     pred = entry.decoder.decode_batch(np.ascontiguousarray(dets))
@@ -62,7 +99,7 @@ def accuracy(entry, dets, obs):
 #     SLA budgets (the latency-capacity tradeoff; one fixed SLA is unfair across
 #     decoders whose base latency differs by 100x). "sustained" = bounded backlog.
 def serving(entry, pool, slas_ms=(100, 250, 500), t_round=1e-3,
-            Ks=(4, 8, 16, 32, 64, 128, 256, 512, 1024, 1536), duration=4.0):
+            Ks=(1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 1536), duration=4.0):
     rows = []
     for K in Ks:
         r = run_load(entry.decoder, pool, K=K, t_round=t_round, duration=duration)
@@ -95,23 +132,50 @@ def run(entries, dets, obs, pool):
     return rows
 
 
-if __name__ == "__main__":
-    dem = stim.DetectorErrorModel.from_file(FIX+"bb72_r6_p0.003_Z.dem")
-    c = stim.Circuit.from_file(FIX+"bb72_r6_p0.003_Z.stim")
-    dets, obs = c.compile_detector_sampler(seed=0).sample(2000, separate_observables=True)
-    dets = np.asarray(dets, bool); obs = np.asarray(obs, bool)
-    pool = np.ascontiguousarray(dets)
-    backend = tridec.resolve_backend("auto")
-    print(f"QEC decode-serving benchmark | code=bb72_r6_p0.003_Z | backend={backend}")
-    entries = [
-        tridec_entry(dem, "relay", "tridec Relay-BP (accurate)"),
-        tridec_entry(dem, "bp",    "tridec min-sum BP (fast)"),
-    ]
+def _opt(label, fn):
     try:
-        entries.append(relaybp_entry(dem))          # external decoder (proves generic)
+        return [fn()]
     except Exception as ex:
-        print(f"  (relay_bp external entry skipped: {type(ex).__name__})")
-    rows = run(entries, dets, obs, pool)
-    out = {"code": "bb72_r6_p0.003_Z", "backend": backend, "slas_ms": [100, 250, 500], "rows": rows}
+        print(f"  (skipped {label}: {type(ex).__name__}: {str(ex)[:60]})")
+        return []
+
+
+def build_codes():
+    """The code x decoder matrix. Matching decoders (PyMatching) need a
+    decomposed DEM; BP/relay use the plain DEM. Same shots for both."""
+    codes = []
+    # --- BB [[72,12,6]] qLDPC (matching does NOT apply; BP-family + OSD) ---
+    bb = stim.DetectorErrorModel.from_file(FIX+"bb72_r6_p0.003_Z.dem")
+    bc = stim.Circuit.from_file(FIX+"bb72_r6_p0.003_Z.stim")
+    bd, bo = bc.compile_detector_sampler(seed=0).sample(2000, separate_observables=True)
+    be = [tridec_entry(bb, "relay", "tridec Relay-BP"),
+          tridec_entry(bb, "bp", "tridec min-sum BP")]
+    be += _opt("ldpc BP-OSD", lambda: bposd_entry(bb))
+    be += _opt("relay_bp oracle", lambda: relaybp_entry(bb))
+    codes.append(("BB [[72,12,6]] qLDPC (p=0.003)", np.asarray(bd, bool), np.asarray(bo, bool), be))
+    # --- surface d=5 (the canonical code; matching IS the reference here) ---
+    sc = stim.Circuit.generated("surface_code:rotated_memory_z", distance=5, rounds=5,
+            after_clifford_depolarization=0.003, after_reset_flip_probability=0.003,
+            before_measure_flip_probability=0.003, before_round_data_depolarization=0.003)
+    sd, so = sc.compile_detector_sampler(seed=0).sample(2000, separate_observables=True)
+    plain = sc.detector_error_model(decompose_errors=False)
+    se = [tridec_entry(plain, "relay", "tridec Relay-BP"),
+          tridec_entry(plain, "bp", "tridec min-sum BP")]
+    se += _opt("PyMatching MWPM", lambda: pymatching_entry(sc.detector_error_model(decompose_errors=True)))
+    codes.append(("surface d=5 rotated_memory_z (p=0.003)", np.asarray(sd, bool), np.asarray(so, bool), se))
+    return codes
+
+
+if __name__ == "__main__":
+    backend = tridec.resolve_backend("auto")
+    print(f"QEC decode-serving benchmark | backend={backend}")
+    all_rows = []
+    for label, dets, obs, entries in build_codes():
+        print(f"\n== {label} ==")
+        rows = run(entries, dets, obs, np.ascontiguousarray(dets))
+        for r in rows:
+            r["code"] = label
+        all_rows += rows
+    out = {"backend": backend, "slas_ms": [100, 250, 500], "rows": all_rows}
     json.dump(out, open("/Users/bledden/Documents/tridec-serve/benchmark/results_metal.json", "w"), indent=2)
-    print("saved benchmark/results_metal.json")
+    print("\nsaved benchmark/results_metal.json")

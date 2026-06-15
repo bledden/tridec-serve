@@ -1,20 +1,27 @@
-"""The benchmark's two-axis output: accuracy (LER) vs serving capacity
-(sustained qubits/GPU). Existing QEC benchmarks plot only the y-axis."""
-import json, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+"""Accuracy vs serving-capacity, the two axes the benchmark unifies — across the
+code x decoder matrix. Lower LER = better; higher capacity = better => bottom-
+right is best. Existing QEC benchmarks plot only the y-axis."""
+import json, numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
 d = json.load(open("results_metal.json"))
-fig, ax = plt.subplots(figsize=(8.5, 5.6))
+codes = sorted({r["code"] for r in d["rows"]})
+cmap = {codes[0]: "#1f77b4", codes[1] if len(codes) > 1 else "_": "#d62728"}
+fig, ax = plt.subplots(figsize=(9.5, 6))
 for r in d["rows"]:
-    cap = r["serving"]["max_sustained_qubits"]; ler = r["ler"]*100
-    col = "#1f77b4" if r["accurate"] else "#ff7f0e"
-    ax.scatter(cap, ler, s=140, color=col, zorder=3, edgecolor="k", linewidth=0.5)
-    ax.annotate(r["decoder"], (cap, ler), textcoords="offset points",
-                xytext=(10, 6), fontsize=9)
-ax.set_xlabel("serving capacity  (max sustained logical qubits / GPU, 1 ms round)")
-ax.set_ylabel("logical error rate  (%, lower = better)")
-ax.set_title(f"QEC decode-serving benchmark: accuracy vs serving capacity\n"
-             f"({d['code']}, backend={d['backend']}) — the two axes unified "
-             f"(existing benchmarks measure only accuracy)")
-ax.grid(alpha=0.3); ax.margins(0.18)
-plt.tight_layout(); plt.savefig("benchmark_pareto_metal.png", dpi=150)
-print("rows:", [(r["decoder"], r["serving"]["max_sustained_qubits"], round(r["ler"]*100,2)) for r in d["rows"]])
-print("saved benchmark_pareto_metal.png")
+    cap = max(r["serving"]["max_sustained_qubits"], 0.5)   # floor for log axis
+    ler = max(r["ler"]*100, 0.05)
+    col = cmap.get(r["code"], "#555")
+    mk = "o" if r["accurate"] else "^"
+    ax.scatter(cap, ler, s=150, color=col, marker=mk, zorder=3, edgecolor="k", linewidth=0.5)
+    short = r["decoder"].replace("tridec ", "").replace(" (accurate, CPU)", "/CPU").replace(" MWPM (accurate)", "").replace(" Rust oracle (CPU, accurate)", "/CPU")
+    ax.annotate(short, (cap, ler), textcoords="offset points", xytext=(8, 5), fontsize=8)
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_xlabel("serving capacity  (max sustained logical qubits / GPU, 1 ms round)  →  better")
+ax.set_ylabel("logical error rate (%)  —  lower is better  ↓")
+handles = [plt.Line2D([],[],marker='o',ls='',color=cmap[c],label=c) for c in codes if c in cmap]
+handles += [plt.Line2D([],[],marker='o',ls='',color='gray',label='accurate (o) / fast (▲)')]
+ax.legend(handles=handles, fontsize=8, loc="lower left")
+ax.set_title(f"QEC decode-serving benchmark — accuracy vs serving capacity (backend={d['backend']})\n"
+             "surface: matching dominates both axes; BB qLDPC: GPU BP-family gives the serving capacity")
+ax.grid(alpha=0.3, which="both"); ax.margins(0.2)
+plt.tight_layout(); plt.savefig("benchmark_pareto.png", dpi=150)
+print("saved benchmark_pareto.png")
