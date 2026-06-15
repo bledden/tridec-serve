@@ -44,11 +44,11 @@ throughput (syn/s).
 | | tridec min-sum BP | 8.40% · 32q | 7.80% · **1024q** | 7.80% · **1024q** |
 | | `ldpc` BP-OSD (CPU) | 1.55% · 0q | **1.15%** · 1q | 1.15% · 0q |
 | | `relay_bp` oracle (CPU) | 1.75% · 0q | 1.40% · 32q | 1.40% · 0q |
-| | **NVIDIA CUDA-Q `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **1.45% · 1q** |
+| | **NVIDIA CUDA-Q `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **1.45% · 8q** |
 | **surface d=5** | tridec Relay-BP | 1.30% · 0q | 1.60% · 0q | 1.60% · 1q |
 | | tridec min-sum BP | 7.65% · 16q | 7.90% · 1024q | 7.90% · 512q |
 | | **PyMatching MWPM** | **0.10% · 1536q** | **0.15% · 1536q** | **0.15% · 1024q** |
-| | **NVIDIA CUDA-Q `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **0.55% · 2q** |
+| | **NVIDIA CUDA-Q `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **0.55% · 8q** |
 
 (LER % · sustained qubits/GPU. 2000 shots, p=0.003.)
 
@@ -62,14 +62,21 @@ Three findings:
   tridec code runs on Metal, ROCm, *and* CUDA; the GPU BP family jumps from
   Metal's 16–32 q to **1024 q** on MI300X *and* H200. AMD MI300X is first-class —
   it hits the same 1024/1536-qubit knee as the H200.
-- **Head-to-head vs NVIDIA's own decoder — and the vendor-lock made concrete.**
-  CUDA-Q `nv-qldpc`+OSD is **accurate** (1.45% BB, 0.55% surface — competitive
-  with relay/BP-OSD) but **GPU-throughput-bound at ~1.5–2.7k syn/s → 1–2 logical
-  qubits/GPU** (measured: the BP iteration *is* the cost — 78% of batch time is
-  the GPU decode, not marshalling). On NVIDIA's **own H200**, vendor-neutral
-  tridec Relay-BP serves **16 q at comparable 1.95% accuracy** (≈16×), and tridec
-  min-sum BP serves **1024 q**. And critically: **`nv-qldpc` is CUDA-locked — it
-  cannot run on the MI300X at all.** tridec runs on both.
+- **Head-to-head vs NVIDIA's own decoder — Pareto-close, and the vendor-lock made
+  concrete.** CUDA-Q `nv-qldpc`+OSD is **accurate** (1.45% BB, 0.55% surface —
+  competitive with relay/BP-OSD) and **sustains 8 q/GPU** at a 1 ms round. At the
+  accurate tier it's neck-and-neck with tridec Relay-BP (1.95% · 16 q): NVIDIA's
+  decoder is slightly *more* accurate, tridec serves ~2× more — genuinely
+  Pareto-close, neither dominates. (tridec's *fast* min-sum BP serves 1024 q but
+  at ~8% LER — a different point on the curve.) The serving cap is `nv-qldpc`'s
+  **~18 ms per-batch latency** (heavy BP iterations): its *raw* large-batch
+  throughput is ~54k syn/s (≈50 q ceiling under a production scheduler), but the
+  per-batch latency bounds sustained-K at a tight reaction-latency SLA — the same
+  prototype-scheduler caveat applies to every decoder here. **Two non-default
+  knobs are required to be fair to it:** `use_osd=True` (default BP-only ≈ 5% LER)
+  and `bp_batch_size` (default is tiny → ~serial ~4k syn/s; set to the batch width
+  → true GPU batching, 12× at the same LER). And the durable point: **`nv-qldpc`
+  is CUDA-locked — it cannot run on the MI300X at all.** tridec runs on both.
 
 ## NVIDIA Ising pre-decoder (documented — not yet runnable here)
 
@@ -92,11 +99,12 @@ their decoders. There is no **vendor-neutral** serving benchmark. That's the
 MLPerf role: the neutral standard exists *because* one vendor dominates — the
 counterweight everyone else uses to show competitiveness. This benchmark now
 makes the case concretely: it **runs NVIDIA's own `nv-qldpc` head-to-head**, and
-shows a vendor-neutral decoder is **Pareto-competitive-to-better on serving even
-on NVIDIA's own H200** — *and* the only one that also runs on AMD. The **AMD
-angle is the strongest case**: MI300X is first-class here (same 1024-qubit knee
-as H200), in a domain NVIDIA is claiming CUDA-only and structurally won't build a
-neutral benchmark for. This is exactly the artifact to bring to AMD.
+shows a vendor-neutral decoder is **Pareto-competitive on NVIDIA's own H200**
+(neck-and-neck with `nv-qldpc` at the accurate tier) — *and* the only one that
+also runs on AMD. The **AMD angle is the strongest case**: MI300X is first-class
+here (same 1024-qubit knee as H200), in a domain NVIDIA is claiming CUDA-only and
+structurally won't build a neutral benchmark for. This is exactly the artifact to
+bring to AMD.
 
 **Honest scope:** "the standard nobody's defined" is aspirational — a benchmark
 becomes a *standard* only if adopted. The realistic value is a clean, novel,

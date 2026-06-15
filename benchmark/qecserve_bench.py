@@ -90,12 +90,17 @@ def cudaq_entry(dem, name="NVIDIA CUDA-Q nv-qldpc+OSD (GPU)"):
     """NVIDIA's CUDA-Q QEC GPU LDPC decoder (cudaq-qec). CUDA-only -> runs on the
     H200, auto-skipped on AMD/Metal -- exactly the vendor-lock point the benchmark
     makes concrete (the head-to-head we CAN'T port to MI300X). GPU sparse batch
-    decoding (use_sparsity=True). NOTE: we set use_osd=True -- the default is BP
-    only (LER ~5% on this BB cell); OSD post-processing brings it to ~1.5%, the
-    fair accurate-decoder config (and it's nearly free here, BP dominates the
-    runtime). The NVIDIA *Ising* pre-decoder is a research artifact, not in
-    cudaq-qec 0.6.0, so it stays a documented number (README), not a runnable
-    entry here."""
+    decoding (use_sparsity=True). TWO non-default knobs matter for a FAIR
+    comparison:
+      * use_osd=True   -- default is BP-only (~5% LER on this BB cell); OSD brings
+                          it to ~1.5% and is nearly free (BP dominates runtime).
+      * bp_batch_size  -- THE throughput knob. Default is tiny, so 'batch' decode
+                          runs ~serially (~4k syn/s); setting it to the batch
+                          width gives true GPU batching (~54k syn/s, 12x, SAME
+                          LER). Leaving it default badly under-reports NVIDIA's
+                          decoder -- so we set it to the max serving bucket.
+    The NVIDIA *Ising* pre-decoder is a research artifact, not in cudaq-qec 0.6.0,
+    so it stays a documented number (README), not a runnable entry here."""
     import cudaq_qec as qec
     from tridec.dem import extract
     ex = extract(dem)
@@ -103,7 +108,7 @@ def cudaq_entry(dem, name="NVIDIA CUDA-Q nv-qldpc+OSD (GPU)"):
     pri = list(np.clip(np.asarray(ex["priors"]), 1e-6, 1 - 1e-6))
     Lo = ex["Lo"].toarray().astype(np.uint8)
     dec = qec.get_decoder("nv-qldpc-decoder", Hd, error_rate_vec=pri,
-                          use_sparsity=True, use_osd=True)
+                          use_sparsity=True, use_osd=True, bp_batch_size=4096)
     # pick the fastest accepted batch-input form once (ndarray if allowed, else
     # list-of-lists) so the serving number isn't penalised by needless conversion
     try:
