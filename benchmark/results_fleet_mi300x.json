@@ -1,0 +1,88 @@
+{
+  "backend": "triton",
+  "surface_decoder": "tridec-bp",
+  "mixed_distance": {
+    "max_fleet": 384,
+    "seeds": [
+      384,
+      384,
+      384
+    ],
+    "lo": 384,
+    "hi": 384,
+    "last_sweep": [
+      {
+        "scale": 4,
+        "fleet_K": 12,
+        "overloaded": false,
+        "p99_ms": 9.876244050128662
+      },
+      {
+        "scale": 8,
+        "fleet_K": 24,
+        "overloaded": false,
+        "p99_ms": 9.322057089975678
+      },
+      {
+        "scale": 16,
+        "fleet_K": 48,
+        "overloaded": false,
+        "p99_ms": 9.474210500256964
+      },
+      {
+        "scale": 32,
+        "fleet_K": 96,
+        "overloaded": false,
+        "p99_ms": 13.866229480063136
+      },
+      {
+        "scale": 64,
+        "fleet_K": 192,
+        "overloaded": false,
+        "p99_ms": 14.006191399948865
+      },
+      {
+        "scale": 128,
+        "fleet_K": 384,
+        "overloaded": false,
+        "p99_ms": 43.33333712002975
+      },
+      {
+        "scale": 256,
+        "fleet_K": 768,
+        "overloaded": true,
+        "p99_ms": 1799.5795879996876
+      }
+    ]
+  },
+  "mixed_family": {
+    "max_fleet": 1024,
+    "seeds": [
+      1024,
+      1024,
+      1024
+    ],
+    "lo": 1024,
+    "hi": 1024,
+    "last_sweep": [
+      {
+        "scale": 256,
+        "fleet_K": 512,
+        "overloaded": false,
+        "p99_ms": 13.738830290058193
+      },
+      {
+        "scale": 512,
+        "fleet_K": 1024,
+        "overloaded": false,
+        "p99_ms": 261.84498872998165
+      },
+      {
+        "scale": 768,
+        "fleet_K": 1536,
+        "overloaded": true,
+        "p99_ms": 3156.978000366005
+      }
+    ]
+  }
+}

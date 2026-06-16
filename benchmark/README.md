@@ -152,7 +152,7 @@ Findings (BB qLDPC + d=5 slice):
   exactly what NVIDIA's Ising AI pre-decoder is. The plumbing is correct and
   ready; the cheap-pre slot is where Ising would drop in.
 
-## Mixed-distance / mixed-family FLEETS (v4) — `benchmark_fleet_h200.png`
+## Mixed-distance / mixed-family FLEETS (v4) — `benchmark_fleet_{h200,mi300x}.png`
 
 v1–v3 decode one homogeneous code at a time. A real fault-tolerant machine isn't
 homogeneous: it has logical qubits at **different code distances** (different
@@ -160,28 +160,31 @@ protection levels) and **different code families** at once. v4 serves that on
 **one GPU** — a `FleetServer` keeps a per-lane queue + its own decoder instance
 (different codes can't share a batch) and **time-shares the accelerator** across
 lanes (`../fleet_serve.py`). Metric: max sustained **total** fleet, with each
-lane routed to the right decoder.
+lane routed to the right decoder. Measured **cross-vendor** (1 ms round, tridec BP
+per lane, median of 3 seeds):
 
-Measured on the H200 (1 ms round, tridec BP per lane, median of 3 seeds):
-
-| fleet composition (one GPU) | max sustained TOTAL | p99 at knee | overloads at |
-|---|---|---|---|
-| **mixed-distance** — surface d3 + d5 + d7 (equal) | **384 q** | 51 ms | 768 q (2.5 s) |
-| **mixed-family** — surface d5 + BB qLDPC | **512 q** | 17 ms | 1024 q |
+| fleet composition (one GPU) | H200 (CUDA) | MI300X (ROCm7) |
+|---|---|---|
+| **mixed-distance** — surface d3 + d5 + d7 (equal) | **384 q** | **384 q** |
+| **mixed-family** — surface d5 + BB qLDPC | **512 q** | **1024 q** |
 
 Findings:
 - **One GPU serves a heterogeneous fleet of hundreds of logical qubits**, routing
   each lane to its own decoder instance. The knee is set by the **bottleneck lane**
-  — the biggest/slowest code (surface d7 in the mixed-distance fleet, surface d5
-  in the mixed-family one) — exactly as the per-code v3 capacities predict once the
-  GPU is split across lanes.
+  — the biggest/slowest code (surface d7 for mixed-distance, surface d5 for
+  mixed-family) — exactly as the per-code v3 capacities predict once the GPU is
+  split across lanes.
+- **Cross-vendor, and AMD holds its own.** Mixed-distance is at **parity** (384 q
+  on both). On mixed-family the **MI300X serves 2× the H200** (1024 vs 512 q) —
+  its surface-d5 min-sum BP is faster on the rocm7/triton-3.4 stack, so its
+  bottleneck lane is higher. AMD isn't just "supported" here; on this workload it
+  leads.
 - **This is the vendor-neutrality lever made operational.** A heterogeneous fleet
   needs *multiple* decoder instances (one per code/distance) — and the right one
   per code (matching for surface, BP for qLDPC). A single CUDA-locked `nv-qldpc`
   is one BP decoder bound to one parity-check matrix; it cannot *be* a mixed
   fleet's router, and cannot run on AMD at all. The portable multi-decoder stack
-  can — on NVIDIA *and* AMD. (`fleetbench.py`; routing validated locally on CPU
-  via PyMatching, headline numbers on the H200.)
+  can — on NVIDIA *and* AMD, with AMD ahead on the mixed-family fleet.
 
 ## NVIDIA Ising pre-decoder (documented — the pre-decode slot is now built)
 
@@ -256,11 +259,11 @@ AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tunin
   MI300X/ROCm7); capacity-vs-distance + the BP-LER-rises finding, above.
 - ✅ **AMD MI300X re-validated on ROCm7** (DigitalOcean) after RunPod's MI300X
   was lost to a host memlock cap; relay megakernel re-tuned for triton-3.4.
-- ✅ **Mixed-distance / mixed-family fleets (v4)** — one GPU serves a heterogeneous
-  fleet (384 q mixed-distance / 512 q mixed-family on the H200), routing each lane
-  to its own decoder. The vendor-neutrality lever, above.
-- **Next:** the v4 fleet run **cross-vendor on an MI300X** (RunPod MI300X is
-  memlock-broken; needs a DO ROCm7 box); best-tool routing (matching for surface
-  lanes) for the accuracy-optimal fleet; drop in NVIDIA's **Ising** if public;
-  neural decoders; out-of-process / CUDA-graph scheduler to lift the prototype's
-  pessimistic serving floor.
+- ✅ **Mixed-distance / mixed-family fleets (v4), cross-vendor** — one GPU serves a
+  heterogeneous fleet, routing each lane to its own decoder: mixed-distance 384 q
+  (H200 = MI300X, parity); mixed-family 512 q (H200) / **1024 q (MI300X, AMD
+  leads)**. The vendor-neutrality lever, above.
+- **Next:** best-tool routing (matching for surface lanes) for the accuracy-optimal
+  fleet; drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
+  CUDA-graph scheduler to lift the prototype's pessimistic serving floor; then the
+  arXiv writeup (repro gate is cleared — see `receipts/`).

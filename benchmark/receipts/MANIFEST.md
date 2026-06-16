@@ -27,9 +27,10 @@ tridec GPU lanes need a triton backend; the `nv-qldpc`/TN lanes need CUDA.
 | `results_mi300x.json` | AMD MI300X, ROCm7 (DigitalOcean; torch 2.9+rocm7 / triton 3.4) | 2000 · 3 | v3 — BB + surface d=3/5/7; tridec relay/BP + BP-OSD + relay_bp + PyMatching (relay re-tuned (1024,16) for rocm7) |
 | `results_metal.json` | Apple M4 Max, Metal (triton-metal) | 2000 · 1 | v1 — BB + surface d=5 (single-seed, pre-CI vintage; not re-run with the multi-seed harness) |
 | `results_fleet_h200.json` | NVIDIA H200, CUDA | per-lane · 3 | v4 — mixed-distance (384q) + mixed-family (512q) fleets, tridec BP per lane |
+| `results_fleet_mi300x.json` | AMD MI300X, ROCm7 (DigitalOcean) | per-lane · 3 | v4 — mixed-distance (384q) + mixed-family (1024q) fleets, tridec BP per lane |
 | `benchmark_pareto_{h200,mi300x,metal}.png` | — | — | accuracy-vs-capacity Pareto per platform (v3; error bars where multi-seed) |
 | `benchmark_distance_{h200,mi300x}.png` | — | — | surface distance sweep d=3/5/7 (v3) |
-| `benchmark_fleet_h200.png` | — | — | v4 fleet p99-vs-size knee |
+| `benchmark_fleet_{h200,mi300x}.png` | — | — | v4 fleet p99-vs-size knee (cross-vendor) |
 
 ## Known non-reproducible-by-construction items (documented, not bugs)
 - stim's circuit→DEM is platform-dependent at the ulp level, and its seeded
@@ -42,6 +43,7 @@ tridec GPU lanes need a triton backend; the `nv-qldpc`/TN lanes need CUDA.
 - RunPod MI300X is unusable (host `memlock` cap → ROCm/HSA fails); the MI300X
   receipts are from a DigitalOcean ROCm7 box.
 
-## Pending
-- v4 fleet **cross-vendor on MI300X** (needs a DO ROCm7 box; the RunPod one is
-  memlock-broken). Harness ready: `TRIDEC_PLAT=mi300x python ../fleetbench.py`.
+## Status
+- ✅ v4 fleet **cross-vendor done** (H200 + DO ROCm7 MI300X): mixed-distance at
+  parity (384q both); mixed-family MI300X 1024q vs H200 512q (AMD leads).
+  Reproduce on a DO ROCm7 box: `TRIDEC_PLAT=mi300x python ../fleetbench.py`.
