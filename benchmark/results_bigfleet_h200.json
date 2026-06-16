@@ -1,0 +1,30 @@
+{
+  "max_fleet": 512,
+  "seeds": [
+    512,
+    512,
+    512
+  ],
+  "lo": 512,
+  "hi": 512,
+  "last_sweep": [
+    {
+      "scale": 64,
+      "fleet_K": 256,
+      "overloaded": false,
+      "p99_ms": 45.54924927651882
+    },
+    {
+      "scale": 128,
+      "fleet_K": 512,
+      "overloaded": false,
+      "p99_ms": 165.02988303080284
+    },
+    {
+      "scale": 256,
+      "fleet_K": 1024,
+      "overloaded": true,
+      "p99_ms": 2499.181730672717
+    }
+  ]
+}

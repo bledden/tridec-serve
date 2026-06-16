@@ -94,39 +94,45 @@ serve and doesn't scale — a clean negative.
 ## Surface-code distance sweep (v3) — `benchmark_distance_{h200,mi300x}.png`
 
 The serving question that only this benchmark asks of code distance: **stronger
-protection costs serving capacity.** Sweeping surface d=3/5/7 on both the H200 and
-the AMD MI300X (ROCm7), and pushing the sweep to **d=9/11/13** on the MI300X (the
-box that was available — d=13 fits well within either GPU's memory; H200 coverage
-of d≥9 is a TODO, not a capability limit):
+protection costs serving capacity.** Full sweep **d=3..13 on BOTH the H200 and the
+AMD MI300X** (ROCm7), accuracy at **50k shots** (Wilson CI):
 
-| d | PyMatching LER · cap | min-sum BP LER · cap | nv-qldpc+OSD (H200) |
+| d | PyMatching LER | min-sum BP LER | capacity (q/GPU) |
 |---|---|---|---|
-| **3** | 0.55% · 1536q | 4.25% · 1536q | 0.90% · 96q |
-| **5** | 0.15% · 1024q | 7.90% · 512–768q | 0.55% · 12q |
-| **7** | 0.35%† · 256q | 15.2% · 192–256q | 0.60% · 3q |
-| **9** *(MI300X)* | 0.10% · 96q | 22.2% · 96q | — |
-| **11** *(MI300X)* | 0.05% · 64q | 30.95% · 48q | — |
-| **13** *(MI300X)* | **0.00%** (0/2000) · 32q | **33.75%** · 32q | — |
+| **3** | 0.632% [0.57–0.71] | 4.01% | 1536 |
+| **5** | 0.286% [0.24–0.34] | 8.66% | ~512–1024 |
+| **7** | 0.140% [0.11–0.18] | 15.31% | ~192–256 |
+| **9** | 0.068% [0.05–0.10] | 22.18% | ~64–128 |
+| **11** | 0.018% [0.01–0.03] | 29.15% | ~48–128 |
+| **13** | **0.010%** [0.004–0.02] | **34.65%** | ~24–32 |
 
-(LER and capacity per platform; matching/BP capacities for d≤7 agree closely
-across H200/MI300X. d=9–13 are MI300X-only **coverage** (matching + min-sum BP);
-d=13 is Gu et al.'s max. †d=7 matching LER is noise-limited at 2000 shots
-— 7/2000 — but the d=9–13 points confirm the monotone suppression: 0.10% → 0.05%
-→ **0/2000**. At d=13 matching is a *perfect* decoder on these 2000 shots while BP
-fails a third of them.)
+**Accuracy (LER) is bit-identical across H200 and MI300X** — both are x86_64 Linux,
+so stim's sampler yields the same shots and the decoders are deterministic; the LER
+ladder is *vendor-independent*. Capacity differs slightly by stack (shown as the
+H200↔MI300X range). The 50k shots dissolved the 2000-shot noise — matching ~halves
+each step (clean threshold; the old d=7 "0.35%" wiggle was noise, now 0.140%), and
+at d=13 matching gives **0.010% (5/50000) — ~3500× lower LER than BP**.
+
+**Device-max (192 GB vs 141 GB — the honest answer): both GPUs cap at the same
+d=13.** Pushing further, *both* wall at **d=15** with a tridec BP triton-kernel
+error (`[HIP] invalid argument` on MI300X, `[CUDA] invalid argument` on H200) — a
+**kernel limit, not memory or vendor**: d=13 is only 2184 detectors, nowhere near
+either GPU's memory. The MI300X's 192 GB confers no higher-d reach here; the
+ceiling is tridec's BP kernel (matching/CPU has no such cap). A real, documented
+limitation surfaced by the max-probe — not a memory story.
 
 Two clean findings, **identical across both vendors** (it's decoder physics):
 - **Capacity drops monotonically with distance** — bigger code = more
   detectors/error-mechanisms per shot = fewer logical qubits/GPU. PyMatching
-  1536→1024→256; min-sum BP 1536→~600→~220; nv-qldpc 96→12→3. This is the
-  quantified *serving cost of stronger protection*.
-- **BP-family LER *rises* monotonically with distance on the surface code** (min-sum
-  BP 4.25%→7.90%→15.2%→22.2%→**30.95%** out to d=11; relay 0.75%→1.60%→6.05%),
-  while **matching keeps suppressing** (0.55%→…→**0.05%** at d=11) and `nv-qldpc`+OSD
-  stays low — the textbook weakness of plain BP on topological codes
-  (loops/degeneracy), now quantified out to **d=11**: matching gives ~600× lower
-  LER than BP there. "Matching is the right tool for surface; BP-family is for
-  qLDPC" — and it only sharpens with distance.
+  1536→1024→256→128→…→32; min-sum BP 1536→~512→~192→…→~24. This is the quantified
+  *serving cost of stronger protection*.
+- **BP-family LER *rises* monotonically; matching keeps suppressing** (50k shots):
+  min-sum BP **4.01→8.66→15.31→22.18→29.15→34.65%** across d=3..13, while PyMatching
+  **0.632→0.286→0.140→0.068→0.018→0.010%** (each ~halving — clean threshold). At
+  d=13 matching gives **~3500× lower LER than BP**. The textbook weakness of plain
+  BP on topological codes (loops/degeneracy), now quantified to d=13: "matching is
+  the right tool for surface; BP-family is for qLDPC" — and it only sharpens with
+  distance.
 
 Findings (BB qLDPC + d=5 slice):
 - **Right tool per code.** On **surface**, matching dominates *both* axes
@@ -177,8 +183,12 @@ per lane, median of 3 seeds):
 |---|---|---|
 | **mixed-distance** — surface d3 + d5 + d7 (equal), BP all | **384 q** | **384 q** |
 | **mixed-family** — surface d5 + BB qLDPC, BP all | **512 q** | **1024 q** |
-| **best-tool** — surface d3,d5 → *matching* + BB qLDPC → *BP* | — | **1536 q** |
-| **mixed-distance + d9** — surface d3+d5+d7+d9, BP all | — | **256 q** |
+| **best-tool** — surface d3,d5 → *matching* + BB qLDPC → *BP* | **768 q** | **1536 q** |
+| **mixed-distance + d9** — surface d3+d5+d7+d9, BP all | **128 q** | **256 q** |
+
+(best-tool/d9-fleet now cross-vendor too. Note best-tool routes the surface lanes
+to *CPU* matching, so its total is partly host-CPU-bound — the H200↔MI300X gap
+there reflects the whole box, not just the GPU.)
 
 Findings:
 - **One box serves a heterogeneous fleet of hundreds of logical qubits**, routing

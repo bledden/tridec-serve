@@ -1,0 +1,68 @@
+{
+  "best_tool": {
+    "max_fleet": 768,
+    "seeds": [
+      768,
+      768,
+      768
+    ],
+    "lo": 768,
+    "hi": 768,
+    "last_sweep": [
+      {
+        "scale": 64,
+        "fleet_K": 192,
+        "overloaded": false,
+        "p99_ms": 5.7130399905148375
+      },
+      {
+        "scale": 128,
+        "fleet_K": 384,
+        "overloaded": false,
+        "p99_ms": 6.402492523193359
+      },
+      {
+        "scale": 256,
+        "fleet_K": 768,
+        "overloaded": false,
+        "p99_ms": 19.36669979244477
+      },
+      {
+        "scale": 512,
+        "fleet_K": 1536,
+        "overloaded": true,
+        "p99_ms": 1169.589089229703
+      }
+    ]
+  },
+  "mixed_distance_d9": {
+    "max_fleet": 128,
+    "seeds": [
+      128,
+      128,
+      128
+    ],
+    "lo": 128,
+    "hi": 128,
+    "last_sweep": [
+      {
+        "scale": 16,
+        "fleet_K": 64,
+        "overloaded": false,
+        "p99_ms": 12.568359766155645
+      },
+      {
+        "scale": 32,
+        "fleet_K": 128,
+        "overloaded": false,
+        "p99_ms": 35.10812986642123
+      },
+      {
+        "scale": 64,
+        "fleet_K": 256,
+        "overloaded": true,
+        "p99_ms": 857.3257451131944
+      }
+    ]
+  }
+}

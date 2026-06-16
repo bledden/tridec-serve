@@ -23,7 +23,8 @@ tridec GPU lanes need a triton backend; the `nv-qldpc`/TN lanes need CUDA.
 
 | file | platform / stack | shots · seeds | scope (harness vintage) |
 |---|---|---|---|
-| `results_h200.json` | NVIDIA H200, CUDA (torch 2.4.1+cu124 / triton 3.0) | 2000 · 3 | v3 — BB qLDPC + surface d=3/5/7; 6 decoder families incl. NVIDIA `nv-qldpc`+OSD & pre-decode cascade |
+| `results_h200.json` | NVIDIA H200, CUDA (torch 2.4.1+cu124 / triton 3.0) | 2000 · 3; LER 50k | v3+ — BB qLDPC + surface **d=3..13** (matching + min-sum BP; 50k-shot LER) + 6 decoder families at d≤7 incl. NVIDIA `nv-qldpc`+OSD & pre-decode cascade |
+| `results_maxd_{h200,mi300x}.json` | both | 4000 | device-max probe: **both wall at d=15** (tridec BP triton kernel `invalid argument`) — a kernel limit, not memory/vendor |
 | `results_mi300x.json` | AMD MI300X, ROCm7 (DigitalOcean; torch 2.9+rocm7 / triton 3.4) | 2000 · 3 | v3 — BB + surface d=3/5/7 (all decoders) **+ d=9..13 (matching + min-sum BP)**; relay re-tuned (1024,16) for rocm7 |
 | `results_fleet_extra_mi300x.json` | AMD MI300X, ROCm7 | per-lane · 3 | v4 extras — best-tool fleet (matching+BP, 1536q) + d3+d5+d7+d9 fleet (256q) |
 | `results_dist_d9d11_mi300x.json` | AMD MI300X, ROCm7 | 2000 · 3 | raw d=9/d=11 distance rows (merged into results_mi300x.json) |
