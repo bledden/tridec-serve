@@ -1,0 +1,78 @@
+{
+  "best_tool": {
+    "max_fleet": 768,
+    "seeds": [
+      768,
+      768,
+      768,
+      768,
+      768
+    ],
+    "lo": 768,
+    "hi": 768,
+    "last_sweep": [
+      {
+        "scale": 64,
+        "fleet_K": 192,
+        "overloaded": false,
+        "p99_ms": 3.6448445171118027
+      },
+      {
+        "scale": 128,
+        "fleet_K": 384,
+        "overloaded": false,
+        "p99_ms": 7.497113514691647
+      },
+      {
+        "scale": 256,
+        "fleet_K": 768,
+        "overloaded": false,
+        "p99_ms": 21.366421636194023
+      },
+      {
+        "scale": 512,
+        "fleet_K": 1536,
+        "overloaded": true,
+        "p99_ms": 1259.3486607074738
+      }
+    ]
+  },
+  "mixed_family": {
+    "max_fleet": 512,
+    "seeds": [
+      512,
+      512,
+      512,
+      512,
+      512
+    ],
+    "lo": 512,
+    "hi": 512,
+    "last_sweep": [
+      {
+        "scale": 64,
+        "fleet_K": 128,
+        "overloaded": false,
+        "p99_ms": 4.24584846943627
+      },
+      {
+        "scale": 128,
+        "fleet_K": 256,
+        "overloaded": false,
+        "p99_ms": 5.255890432745228
+      },
+      {
+        "scale": 256,
+        "fleet_K": 512,
+        "overloaded": false,
+        "p99_ms": 17.141086384654063
+      },
+      {
+        "scale": 512,
+        "fleet_K": 1024,
+        "overloaded": true,
+        "p99_ms": 968.7763734161874
+      }
+    ]
+  }
+}

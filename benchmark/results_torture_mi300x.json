@@ -1,0 +1,50 @@
+{
+  "plat": "mi300x",
+  "rows": [
+    {
+      "total": 1152,
+      "p99_ms": 25.791371999730472,
+      "overloaded": false
+    },
+    {
+      "total": 1344,
+      "p99_ms": 272.7012051804398,
+      "overloaded": false
+    },
+    {
+      "total": 1536,
+      "p99_ms": 574.0856859993073,
+      "overloaded": false
+    },
+    {
+      "total": 1728,
+      "p99_ms": 1648.1457797812807,
+      "overloaded": true
+    },
+    {
+      "total": 1920,
+      "p99_ms": 2439.391318810429,
+      "overloaded": true
+    },
+    {
+      "total": 2112,
+      "p99_ms": 3570.4825049997453,
+      "overloaded": true
+    },
+    {
+      "total": 2304,
+      "p99_ms": 3597.543754000071,
+      "overloaded": true
+    },
+    {
+      "total": 2496,
+      "p99_ms": 4962.216329398995,
+      "overloaded": true
+    },
+    {
+      "total": 2688,
+      "p99_ms": 5264.631367999755,
+      "overloaded": true
+    }
+  ]
+}

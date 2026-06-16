@@ -1,0 +1,14 @@
+# H200 (RunPod) env Tue Jun 16 20:14:33 UTC 2026
+## uname
+Linux 172cf6d34d97 6.8.0-90-generic #91-Ubuntu SMP PREEMPT_DYNAMIC Tue Nov 18 14:14:30 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+## nvidia-smi
+name, driver_version, memory.total [MiB]
+NVIDIA H200, 570.211.01, 143771 MiB
+## key pkgs
+numpy==2.4.6
+PyMatching==2.4.0
+scipy==1.17.1
+stim==1.15.0
+torch==2.4.1+cu124
+tridec==0.2.1
+triton==3.0.0

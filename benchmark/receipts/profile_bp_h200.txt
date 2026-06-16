@@ -1,0 +1,9 @@
+H200
+PLAT=h200 backend=triton torch=2.4.1+cu124 triton=3.0.0 hipcuda=12.4
+BP decoder backend=triton  detectors(ncols)=120
+  B=    1      1.126 ms/call          888 syn/s   1125.95 us/syn
+  B=   64      1.105 ms/call        57914 syn/s     17.27 us/syn
+  B=  256      1.099 ms/call       232885 syn/s      4.29 us/syn
+  B= 1024      1.742 ms/call       587801 syn/s      1.70 us/syn
+  B= 4096      6.213 ms/call       659243 syn/s      1.52 us/syn
+  B= 8192     12.039 ms/call       680430 syn/s      1.47 us/syn

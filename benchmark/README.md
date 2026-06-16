@@ -106,9 +106,14 @@ AMD MI300X** (ROCm7), accuracy at **50k shots** (Wilson CI):
 | **11** | 0.018% [0.01–0.03] | 29.15% | ~48–128 |
 | **13** | **0.010%** [0.004–0.02] | **34.65%** | ~24–32 |
 
-**Accuracy (LER) is bit-identical across H200 and MI300X** — both are x86_64 Linux,
-so stim's sampler yields the same shots and the decoders are deterministic; the LER
-ladder is *vendor-independent*. Capacity differs slightly by stack (shown as the
+**Accuracy (LER) is hardware-independent** — bit-identical across H200 and MI300X
+(`benchmark_accuracy_parity.png` shows the two LER columns side by side, identical
+to the last digit): both are x86_64 Linux, so stim's sampler yields the same shots
+and the decoders are deterministic, so the LER ladder reproduces to the digit on
+either GPU. (This
+also defuses any "you tuned for one vendor" objection: accuracy is *deterministic*
+and identical, so the capacity differences below are pure stack/kernel work, not a
+measurement artifact.) Capacity, in contrast, is stack-dependent (shown as the
 H200↔MI300X range). The 50k shots dissolved the 2000-shot noise — matching ~halves
 each step (clean threshold; the old d=7 "0.35%" wiggle was noise, now 0.140%), and
 at d=13 matching gives **0.010% (5/50000) — ~3500× lower LER than BP**.
@@ -188,7 +193,13 @@ per lane, median of 3 seeds):
 
 (best-tool/d9-fleet now cross-vendor too. Note best-tool routes the surface lanes
 to *CPU* matching, so its total is partly host-CPU-bound — the H200↔MI300X gap
-there reflects the whole box, not just the GPU.)
+there reflects the whole box, not just the GPU; median-of-5 shows the MI300X
+best-tool occasionally dips to 768q (band [768–1536]) from CPU jitter, while
+mixed-family is rock-solid. **SLA caveat (torture sweep, `benchmark_torture_mi300x.png`):**
+"max sustained" is the *backlog* knee; the cliff is a gradual p99 ramp
+(26→273→574 ms across 1152→1536q) then hard overload at 1728q — so the **p99<500 ms
+SLA-bound** capacity is ~1344q, below the 1536q backlog knee. Both metrics reported;
+neither hidden.)
 
 Findings:
 - **One box serves a heterogeneous fleet of hundreds of logical qubits**, routing
@@ -203,9 +214,18 @@ Findings:
   *slower* lane re-confirms the bottleneck principle: a 4-lane best-tool fleet that
   also carries d7-surface-matching drops to 512 q, gated by that slowest lane.)
 - **Cross-vendor, and AMD holds its own.** Mixed-distance is at **parity** (384 q
-  on both). On mixed-family the **MI300X serves 2× the H200** (1024 vs 512 q) —
-  its surface-d5 min-sum BP is faster on the rocm7/triton-3.4 stack. AMD isn't just
-  "supported" here; on this workload it leads.
+  on both). On mixed-family the **MI300X serves 2× the H200** (1024 vs 512 q),
+  because the fleet runs at large batches where the MI300X's surface-d5 BP throughput
+  is higher. **Root-caused, with the confounds stated** (a profile of surface-d5 BP
+  across batch sizes): the H200 has ~2× *lower* per-call/launch overhead (1.08 vs
+  2.19 ms at B=1), the MI300X has ~1.3× *higher* large-batch throughput (1.16 vs
+  1.47 µs/syn at B=8192); the serving regime is large-batch, so MI300X wins there.
+  **But this is a *stack* comparison, not a hardware verdict:** the two triton
+  versions differ (**3.4+rocm7 vs 3.0+cu124**), and the DO part is an **MI300X VF**
+  (virtualized partition), so the gap reflects codegen + config + partition, not an
+  architectural claim. A same-triton-version test would be needed to attribute it to
+  hardware. (Accuracy, by contrast, *is* hardware-independent — next section — so the
+  capacity gap is pure stack/kernel, not a measurement artifact.)
 - **This is the vendor-neutrality lever made operational.** A heterogeneous fleet
   needs *multiple* decoder instances (one per code/distance) — and the right one
   per code (matching for surface, BP for qLDPC). A single CUDA-locked `nv-qldpc`

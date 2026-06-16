@@ -1,0 +1,20 @@
+# MI300X (DigitalOcean, rocm container) env Tue Jun 16 20:14:34 UTC 2026
+## uname
+Linux tridec 6.8.0-84-generic #84-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  5 22:36:38 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+## rocm-smi
+GPU[0]		: Card Series: 		AMD Instinct MI300X VF
+GPU[0]		: Card Model: 		0x74b5
+## key pkgs (container)
+-e git+https://github.com/rocm/aiter.git@3d48b72be951d4179f045acd804109ac77ea4534#egg=aiter
+amdsmi @ file:///opt/rocm-7.0.0/share/amd_smi
+apex @ file:///apex-1.9.0a0%2Brocm7.0.0.git4b035815-cp310-cp310-linux_x86_64.whl#sha256=34c6e78776bd649e49902fa9fb5c20a044ea134aa608cd594b5042830369ed64
+-e git+https://github.com/ROCm/Megatron-LM.git@f40e2768be6146b6104b9f3c26bb08d3054a6c86#egg=megatron_core
+numpy==1.26.4
+PyMatching==2.4.0
+scipy==1.14.1
+stim==1.15.0
+torch @ file:///torch-2.9.0.dev20250821%2Brocm7.0.0.lw.git125803b7-cp310-cp310-linux_x86_64.whl#sha256=acab3b73cbed252fa9a561efef45ae39d95bd96d435b2eed6b9c6469b31cd85a
+torchaudio @ file:///torchaudio-2.8.0%2Brocm7.0.0.git0c223473-cp310-cp310-linux_x86_64.whl#sha256=96a78ebcc8062af30ccdb00aa4b3d1bbf087a77958e3c22a3efaeeace5049492
+torchvision @ file:///torchvision-0.24.0%2Brocm7.0.0.git98f8b375-cp310-cp310-linux_x86_64.whl#sha256=4632280c7fc10b253dae78e9a88af74378fedc044c86ff883f559bb69d15a1c6
+tridec==0.2.1
+triton @ file:///triton-3.4.0%2Brocm7.0.0.git56765e8c-cp310-cp310-linux_x86_64.whl#sha256=a4c30fb47fc60d89b8ca0cdc4519f7ebf0f688a03694e10325b285de337191f0
