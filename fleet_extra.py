@@ -7,6 +7,7 @@
 """
 import os, json
 os.environ.setdefault("TRIDEC_FIX", "/workspace/bench/fixtures/")
+PLAT = os.environ.get("TRIDEC_PLAT", "mi300x")
 from fleetbench import surface_lane, bb_lane
 from fleet_serve import max_sustained_fleet
 
@@ -30,5 +31,5 @@ for r in m9["last_sweep"]:
     print(f"  total={r['fleet_K']:>5} {'OVERLOAD' if r['overloaded'] else 'ok'} p99={r['p99_ms']}")
 out["mixed_distance_d9"] = m9
 
-json.dump(out, open("/workspace/bench/results_fleet_extra_mi300x.json", "w"), indent=2)
+json.dump(out, open(f"/workspace/bench/results_fleet_extra_{PLAT}.json", "w"), indent=2)
 print("saved results_fleet_extra_mi300x.json")

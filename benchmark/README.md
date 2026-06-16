@@ -95,8 +95,9 @@ serve and doesn't scale — a clean negative.
 
 The serving question that only this benchmark asks of code distance: **stronger
 protection costs serving capacity.** Sweeping surface d=3/5/7 on both the H200 and
-the AMD MI300X (ROCm7), and — exploiting the MI300X's **192 GB** — pushing the
-sweep to **d=9 and d=11** past the H200's d=7:
+the AMD MI300X (ROCm7), and pushing the sweep to **d=9/11/13** on the MI300X (the
+box that was available — d=13 fits well within either GPU's memory; H200 coverage
+of d≥9 is a TODO, not a capability limit):
 
 | d | PyMatching LER · cap | min-sum BP LER · cap | nv-qldpc+OSD (H200) |
 |---|---|---|---|
@@ -108,8 +109,8 @@ sweep to **d=9 and d=11** past the H200's d=7:
 | **13** *(MI300X)* | **0.00%** (0/2000) · 32q | **33.75%** · 32q | — |
 
 (LER and capacity per platform; matching/BP capacities for d≤7 agree closely
-across H200/MI300X. d=9–13 are MI300X-only (matching + min-sum BP), exploiting its
-192 GB; d=13 is Gu et al.'s max. †d=7 matching LER is noise-limited at 2000 shots
+across H200/MI300X. d=9–13 are MI300X-only **coverage** (matching + min-sum BP);
+d=13 is Gu et al.'s max. †d=7 matching LER is noise-limited at 2000 shots
 — 7/2000 — but the d=9–13 points confirm the monotone suppression: 0.10% → 0.05%
 → **0/2000**. At d=13 matching is a *perfect* decoder on these 2000 shots while BP
 fails a third of them.)
@@ -280,7 +281,7 @@ AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tunin
   mixed-distance 384 q (H200 = MI300X); mixed-family 512 q (H200) / **1024 q
   (MI300X)**; best-tool (matching+BP) **1536 q (MI300X)**. The vendor-neutrality
   lever, above.
-- ✅ **Distance sweep pushed to d=9/d=11 on the MI300X (192 GB)** — past the H200's
+- ✅ **Distance sweep pushed to d=9/11/13 on the MI300X** (coverage; fits either GPU) — past the H200's
   d=7; matching suppresses to 0.05% LER while BP climbs to ~31%.
 - **Next:** drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
   CUDA-graph scheduler to lift the prototype's pessimistic serving floor; then the

@@ -1,0 +1,134 @@
+[
+  {
+    "code": "surface d=3",
+    "decoder": "PyMatching MWPM (accurate)",
+    "shots": 50000,
+    "fails": 316,
+    "ler": 0.00632,
+    "ler_ci95": [
+      0.005662290524760999,
+      0.007053564490666457
+    ]
+  },
+  {
+    "code": "surface d=3",
+    "decoder": "tridec min-sum BP",
+    "shots": 50000,
+    "fails": 2006,
+    "ler": 0.04012,
+    "ler_ci95": [
+      0.03843490906538474,
+      0.04187575250586542
+    ]
+  },
+  {
+    "code": "surface d=5",
+    "decoder": "PyMatching MWPM (accurate)",
+    "shots": 50000,
+    "fails": 143,
+    "ler": 0.00286,
+    "ler_ci95": [
+      0.0024285626608313033,
+      0.003367823991189449
+    ]
+  },
+  {
+    "code": "surface d=5",
+    "decoder": "tridec min-sum BP",
+    "shots": 50000,
+    "fails": 4328,
+    "ler": 0.08656,
+    "ler_ci95": [
+      0.08412692098448069,
+      0.08905660497885251
+    ]
+  },
+  {
+    "code": "surface d=7",
+    "decoder": "PyMatching MWPM (accurate)",
+    "shots": 50000,
+    "fails": 70,
+    "ler": 0.0014,
+    "ler_ci95": [
+      0.0011083459979446123,
+      0.001768264986280248
+    ]
+  },
+  {
+    "code": "surface d=7",
+    "decoder": "tridec min-sum BP",
+    "shots": 50000,
+    "fails": 7656,
+    "ler": 0.15312,
+    "ler_ci95": [
+      0.14999021506563318,
+      0.15630308380762784
+    ]
+  },
+  {
+    "code": "surface d=9",
+    "decoder": "PyMatching MWPM (accurate)",
+    "shots": 50000,
+    "fails": 34,
+    "ler": 0.00068,
+    "ler_ci95": [
+      0.0004866761650269851,
+      0.0009500454487779831
+    ]
+  },
+  {
+    "code": "surface d=9",
+    "decoder": "tridec min-sum BP",
+    "shots": 50000,
+    "fails": 11089,
+    "ler": 0.22178,
+    "ler_ci95": [
+      0.21815992539390552,
+      0.22544282371967464
+    ]
+  },
+  {
+    "code": "surface d=11",
+    "decoder": "PyMatching MWPM (accurate)",
+    "shots": 50000,
+    "fails": 9,
+    "ler": 0.00018,
+    "ler_ci95": [
+      9.470318751348467e-05,
+      0.00034209525238878077
+    ]
+  },
+  {
+    "code": "surface d=11",
+    "decoder": "tridec min-sum BP",
+    "shots": 50000,
+    "fails": 14575,
+    "ler": 0.2915,
+    "ler_ci95": [
+      0.2875326807461519,
+      0.295499355736421
+    ]
+  },
+  {
+    "code": "surface d=13",
+    "decoder": "PyMatching MWPM (accurate)",
+    "shots": 50000,
+    "fails": 5,
+    "ler": 0.0001,
+    "ler_ci95": [
+      4.2714125011644684e-05,
+      0.00023409660706618835
+    ]
+  },
+  {
+    "code": "surface d=13",
+    "decoder": "tridec min-sum BP",
+    "shots": 50000,
+    "fails": 17326,
+    "ler": 0.34652,
+    "ler_ci95": [
+      0.34236082743250196,
+      0.3507027551063244
+    ]
+  }
+]

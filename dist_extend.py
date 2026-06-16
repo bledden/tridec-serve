@@ -4,6 +4,7 @@ past the H200's d=7. Focused on the two decoders with meaningful high-d capacity
 v3 capacity-vs-distance + BP-LER-rises findings."""
 import os, json, numpy as np, stim
 os.environ.setdefault("TRIDEC_FIX", "/workspace/bench/fixtures/")
+PLAT = os.environ.get("TRIDEC_PLAT", "mi300x")
 from qecserve_bench import tridec_entry, pymatching_entry, accuracy, serving
 
 SHOTS, P = 2000, 0.003
@@ -26,5 +27,5 @@ for d in [9, 11]:
         out.append({"code": f"surface d={d} rotated_memory_z (p=0.003)", "decoder": e.name, **a, "serving": s})
 
 json.dump({"backend": "triton", "rows": out},
-          open("/workspace/bench/results_dist_d9d11_mi300x.json", "w"), indent=2)
+          open(f"/workspace/bench/results_dist_d9d11_{PLAT}.json", "w"), indent=2)
 print("saved results_dist_d9d11_mi300x.json")

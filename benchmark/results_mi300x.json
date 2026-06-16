@@ -470,12 +470,12 @@
     {
       "decoder": "tridec min-sum BP",
       "accurate": false,
-      "fails": 85,
-      "shots": 2000,
-      "ler": 0.0425,
+      "fails": 2006,
+      "shots": 50000,
+      "ler": 0.04012,
       "ler_ci95": [
-        0.034501047505171765,
-        0.05225311509929758
+        0.03843490906538474,
+        0.04187575250586542
       ],
       "serving": {
         "max_sustained_qubits": 1536,
@@ -837,12 +837,12 @@
     {
       "decoder": "PyMatching MWPM (accurate)",
       "accurate": true,
-      "fails": 11,
-      "shots": 2000,
-      "ler": 0.0055,
+      "fails": 316,
+      "shots": 50000,
+      "ler": 0.00632,
       "ler_ci95": [
-        0.003073865015608807,
-        0.009822164291298485
+        0.005662290524760999,
+        0.007053564490666457
       ],
       "serving": {
         "max_sustained_qubits": 1536,
@@ -1204,12 +1204,12 @@
     {
       "decoder": "tridec min-sum BP",
       "accurate": false,
-      "fails": 158,
-      "shots": 2000,
-      "ler": 0.079,
+      "fails": 4328,
+      "shots": 50000,
+      "ler": 0.08656,
       "ler_ci95": [
-        0.0679690754060425,
-        0.09164513761358942
+        0.08412692098448069,
+        0.08905660497885251
       ],
       "serving": {
         "max_sustained_qubits": 768,
@@ -1555,12 +1555,12 @@
     {
       "decoder": "PyMatching MWPM (accurate)",
       "accurate": true,
-      "fails": 3,
-      "shots": 2000,
-      "ler": 0.0015,
+      "fails": 143,
+      "shots": 50000,
+      "ler": 0.00286,
       "ler_ci95": [
-        0.0005102543486519296,
-        0.004401111899059466
+        0.0024285626608313033,
+        0.003367823991189449
       ],
       "serving": {
         "max_sustained_qubits": 1024,
@@ -1922,12 +1922,12 @@
     {
       "decoder": "tridec min-sum BP",
       "accurate": false,
-      "fails": 304,
-      "shots": 2000,
-      "ler": 0.152,
+      "fails": 7656,
+      "shots": 50000,
+      "ler": 0.15312,
       "ler_ci95": [
-        0.13693331160356195,
-        0.16840100224639507
+        0.14999021506563318,
+        0.15630308380762784
       ],
       "serving": {
         "max_sustained_qubits": 256,
@@ -2225,12 +2225,12 @@
     {
       "decoder": "PyMatching MWPM (accurate)",
       "accurate": true,
-      "fails": 7,
-      "shots": 2000,
-      "ler": 0.0035,
+      "fails": 70,
+      "shots": 50000,
+      "ler": 0.0014,
       "ler_ci95": [
-        0.0016964100455623197,
-        0.007207287731747025
+        0.0011083459979446123,
+        0.001768264986280248
       ],
       "serving": {
         "max_sustained_qubits": 256,
@@ -2956,12 +2956,12 @@
     {
       "code": "surface d=9 rotated_memory_z (p=0.003)",
       "decoder": "tridec min-sum BP",
-      "fails": 444,
-      "shots": 2000,
-      "ler": 0.222,
+      "fails": 11089,
+      "shots": 50000,
+      "ler": 0.22178,
       "ler_ci95": [
-        0.20432853811829713,
-        0.2407373792675881
+        0.21815992539390552,
+        0.22544282371967464
       ],
       "serving": {
         "max_sustained_qubits": 96,
@@ -3210,12 +3210,12 @@
     {
       "code": "surface d=9 rotated_memory_z (p=0.003)",
       "decoder": "PyMatching MWPM (accurate)",
-      "fails": 2,
-      "shots": 2000,
-      "ler": 0.001,
+      "fails": 34,
+      "shots": 50000,
+      "ler": 0.00068,
       "ler_ci95": [
-        0.000274273176083379,
-        0.0036390101892285302
+        0.0004866761650269851,
+        0.0009500454487779831
       ],
       "serving": {
         "max_sustained_qubits": 96,
@@ -3464,12 +3464,12 @@
     {
       "code": "surface d=11 rotated_memory_z (p=0.003)",
       "decoder": "tridec min-sum BP",
-      "fails": 619,
-      "shots": 2000,
-      "ler": 0.3095,
+      "fails": 14575,
+      "shots": 50000,
+      "ler": 0.2915,
       "ler_ci95": [
-        0.28962070295309034,
-        0.33010971885270507
+        0.2875326807461519,
+        0.295499355736421
       ],
       "serving": {
         "max_sustained_qubits": 48,
@@ -3686,12 +3686,12 @@
     {
       "code": "surface d=11 rotated_memory_z (p=0.003)",
       "decoder": "PyMatching MWPM (accurate)",
-      "fails": 1,
-      "shots": 2000,
-      "ler": 0.0005,
+      "fails": 9,
+      "shots": 50000,
+      "ler": 0.00018,
       "ler_ci95": [
-        8.826546015058273e-05,
-        0.0028269350227618393
+        9.470318751348467e-05,
+        0.00034209525238878077
       ],
       "serving": {
         "max_sustained_qubits": 64,
@@ -3924,12 +3924,12 @@
     {
       "code": "surface d=13 rotated_memory_z (p=0.003)",
       "decoder": "tridec min-sum BP",
-      "fails": 675,
-      "shots": 2000,
-      "ler": 0.3375,
+      "fails": 17326,
+      "shots": 50000,
+      "ler": 0.34652,
       "ler_ci95": [
-        0.3171051904211198,
-        0.35851787279904695
+        0.34236082743250196,
+        0.3507027551063244
       ],
       "serving": {
         "max_sustained_qubits": 32,
@@ -4130,12 +4130,12 @@
     {
       "code": "surface d=13 rotated_memory_z (p=0.003)",
       "decoder": "PyMatching MWPM (accurate)",
-      "fails": 0,
-      "shots": 2000,
-      "ler": 0.0,
+      "fails": 5,
+      "shots": 50000,
+      "ler": 0.0001,
       "ler_ci95": [
-        0.0,
-        0.0019171176005129348
+        4.2714125011644684e-05,
+        0.00023409660706618835
       ],
       "serving": {
         "max_sustained_qubits": 32,

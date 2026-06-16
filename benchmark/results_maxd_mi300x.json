@@ -1,0 +1,17 @@
+{
+  "plat": "mi300x",
+  "max_d_reached": 13,
+  "rows": [
+    {
+      "d": 13,
+      "detectors": 2184,
+      "matching_ler": 0.0,
+      "bp_ler": 0.33375,
+      "sec": 4.9
+    },
+    {
+      "d": 15,
+      "error": "RuntimeError: Triton Error [HIP]:  Code: 1, Messsage: invalid argument"
+    }
+  ]
+}
