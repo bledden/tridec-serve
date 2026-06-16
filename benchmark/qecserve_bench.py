@@ -211,7 +211,8 @@ def accuracy(entry, dets, obs):
 #      knee lives) + MULTI-SEED so the knee gets an error bar, not a single point.
 KS_GRID = (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384,
            512, 768, 1024, 1536)
-SURFACE_DISTANCES = (3, 5, 7)   # v3 distance sweep
+SURFACE_DISTANCES = tuple(int(x) for x in
+                          os.environ.get("TRIDEC_DISTANCES", "3,5,7").split(","))  # v3 sweep; env-overridable
 
 
 def _sweep(decoder, pool, Ks, t_round, duration, seed):

@@ -94,29 +94,35 @@ serve and doesn't scale — a clean negative.
 ## Surface-code distance sweep (v3) — `benchmark_distance_{h200,mi300x}.png`
 
 The serving question that only this benchmark asks of code distance: **stronger
-protection costs serving capacity.** Sweeping surface d=3/5/7 (rounds = d), on
-both the H200 and the AMD MI300X (ROCm7):
+protection costs serving capacity.** Sweeping surface d=3/5/7 on both the H200 and
+the AMD MI300X (ROCm7), and — exploiting the MI300X's **192 GB** — pushing the
+sweep to **d=9 and d=11** past the H200's d=7:
 
 | d | PyMatching LER · cap | min-sum BP LER · cap | nv-qldpc+OSD (H200) |
 |---|---|---|---|
 | **3** | 0.55% · 1536q | 4.25% · 1536q | 0.90% · 96q |
 | **5** | 0.15% · 1024q | 7.90% · 512–768q | 0.55% · 12q |
 | **7** | 0.35%† · 256q | 15.2% · 192–256q | 0.60% · 3q |
+| **9** *(MI300X)* | 0.10% · 96q | 22.2% · 96q | — |
+| **11** *(MI300X)* | **0.05%** · 64q | **30.95%** · 48q | — |
 
-(LER and capacity per platform; matching/BP capacities shown are representative
-across H200/MI300X — they agree closely. †d=7 matching LER is noise-limited at
-2000 shots — 7/2000 — but stays sub-percent.)
+(LER and capacity per platform; matching/BP capacities for d≤7 agree closely
+across H200/MI300X. d=9/11 are MI300X-only (matching + min-sum BP). †d=7 matching
+LER is noise-limited at 2000 shots — 7/2000 — but the d=9/11 points confirm the
+monotone suppression: 0.10% → 0.05%.)
 
 Two clean findings, **identical across both vendors** (it's decoder physics):
 - **Capacity drops monotonically with distance** — bigger code = more
   detectors/error-mechanisms per shot = fewer logical qubits/GPU. PyMatching
   1536→1024→256; min-sum BP 1536→~600→~220; nv-qldpc 96→12→3. This is the
   quantified *serving cost of stronger protection*.
-- **BP-family LER *rises* with distance on the surface code** (min-sum BP
-  4.25%→7.90%→**15.2%**; relay 0.75%→1.60%→**6.05%**), while **matching and
-  `nv-qldpc`+OSD stay low** — the textbook weakness of plain BP on topological
-  codes (loops/degeneracy), made quantitative. Reinforces "matching is the right
-  tool for surface; BP-family is for qLDPC."
+- **BP-family LER *rises* monotonically with distance on the surface code** (min-sum
+  BP 4.25%→7.90%→15.2%→22.2%→**30.95%** out to d=11; relay 0.75%→1.60%→6.05%),
+  while **matching keeps suppressing** (0.55%→…→**0.05%** at d=11) and `nv-qldpc`+OSD
+  stays low — the textbook weakness of plain BP on topological codes
+  (loops/degeneracy), now quantified out to **d=11**: matching gives ~600× lower
+  LER than BP there. "Matching is the right tool for surface; BP-family is for
+  qLDPC" — and it only sharpens with distance.
 
 Findings (BB qLDPC + d=5 slice):
 - **Right tool per code.** On **surface**, matching dominates *both* axes
@@ -163,22 +169,27 @@ lanes (`../fleet_serve.py`). Metric: max sustained **total** fleet, with each
 lane routed to the right decoder. Measured **cross-vendor** (1 ms round, tridec BP
 per lane, median of 3 seeds):
 
-| fleet composition (one GPU) | H200 (CUDA) | MI300X (ROCm7) |
+| fleet composition (one box) | H200 (CUDA) | MI300X (ROCm7) |
 |---|---|---|
-| **mixed-distance** — surface d3 + d5 + d7 (equal) | **384 q** | **384 q** |
-| **mixed-family** — surface d5 + BB qLDPC | **512 q** | **1024 q** |
+| **mixed-distance** — surface d3 + d5 + d7 (equal), BP all | **384 q** | **384 q** |
+| **mixed-family** — surface d5 + BB qLDPC, BP all | **512 q** | **1024 q** |
+| **best-tool** — surface d3,d5 → *matching* + BB qLDPC → *BP* | — | **1536 q** |
+| **mixed-distance + d9** — surface d3+d5+d7+d9, BP all | — | **256 q** |
 
 Findings:
-- **One GPU serves a heterogeneous fleet of hundreds of logical qubits**, routing
+- **One box serves a heterogeneous fleet of hundreds of logical qubits**, routing
   each lane to its own decoder instance. The knee is set by the **bottleneck lane**
-  — the biggest/slowest code (surface d7 for mixed-distance, surface d5 for
-  mixed-family) — exactly as the per-code v3 capacities predict once the GPU is
-  split across lanes.
+  — the biggest/slowest code — exactly as the per-code v3 capacities predict once
+  the accelerator is split across lanes (adding a heavier d=9 lane drops the
+  equal-split total to 256 q).
+- **Best-tool routing wins on both axes.** Routing surface→matching + qLDPC→BP
+  (the right tool per code) sustains **1536 q** on the MI300X — 1.5–3× the all-BP
+  fleets — *and* is far more accurate on the surface lanes (matching ~0.1% vs BP
+  ~8%). The accuracy-optimal fleet is also the highest-capacity one.
 - **Cross-vendor, and AMD holds its own.** Mixed-distance is at **parity** (384 q
   on both). On mixed-family the **MI300X serves 2× the H200** (1024 vs 512 q) —
-  its surface-d5 min-sum BP is faster on the rocm7/triton-3.4 stack, so its
-  bottleneck lane is higher. AMD isn't just "supported" here; on this workload it
-  leads.
+  its surface-d5 min-sum BP is faster on the rocm7/triton-3.4 stack. AMD isn't just
+  "supported" here; on this workload it leads.
 - **This is the vendor-neutrality lever made operational.** A heterogeneous fleet
   needs *multiple* decoder instances (one per code/distance) — and the right one
   per code (matching for surface, BP for qLDPC). A single CUDA-locked `nv-qldpc`
@@ -259,11 +270,13 @@ AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tunin
   MI300X/ROCm7); capacity-vs-distance + the BP-LER-rises finding, above.
 - ✅ **AMD MI300X re-validated on ROCm7** (DigitalOcean) after RunPod's MI300X
   was lost to a host memlock cap; relay megakernel re-tuned for triton-3.4.
-- ✅ **Mixed-distance / mixed-family fleets (v4), cross-vendor** — one GPU serves a
-  heterogeneous fleet, routing each lane to its own decoder: mixed-distance 384 q
-  (H200 = MI300X, parity); mixed-family 512 q (H200) / **1024 q (MI300X, AMD
-  leads)**. The vendor-neutrality lever, above.
-- **Next:** best-tool routing (matching for surface lanes) for the accuracy-optimal
-  fleet; drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
+- ✅ **Mixed-distance / mixed-family / best-tool fleets (v4), cross-vendor** — one
+  box serves a heterogeneous fleet, routing each lane to its own decoder:
+  mixed-distance 384 q (H200 = MI300X); mixed-family 512 q (H200) / **1024 q
+  (MI300X)**; best-tool (matching+BP) **1536 q (MI300X)**. The vendor-neutrality
+  lever, above.
+- ✅ **Distance sweep pushed to d=9/d=11 on the MI300X (192 GB)** — past the H200's
+  d=7; matching suppresses to 0.05% LER while BP climbs to ~31%.
+- **Next:** drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
   CUDA-graph scheduler to lift the prototype's pessimistic serving floor; then the
   arXiv writeup (repro gate is cleared — see `receipts/`).

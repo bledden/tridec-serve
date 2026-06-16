@@ -1,0 +1,80 @@
+{
+  "best_tool": {
+    "max_fleet": 1536,
+    "seeds": [
+      1536,
+      1536,
+      1536
+    ],
+    "lo": 1536,
+    "hi": 1536,
+    "last_sweep": [
+      {
+        "scale": 64,
+        "fleet_K": 192,
+        "overloaded": false,
+        "p99_ms": 9.132094349387911
+      },
+      {
+        "scale": 128,
+        "fleet_K": 384,
+        "overloaded": false,
+        "p99_ms": 10.838488880090603
+      },
+      {
+        "scale": 256,
+        "fleet_K": 768,
+        "overloaded": false,
+        "p99_ms": 18.087655000272207
+      },
+      {
+        "scale": 512,
+        "fleet_K": 1536,
+        "overloaded": false,
+        "p99_ms": 565.1195850005024
+      },
+      {
+        "scale": 768,
+        "fleet_K": 2304,
+        "overloaded": true,
+        "p99_ms": 3884.2276614765333
+      }
+    ]
+  },
+  "mixed_distance_d9": {
+    "max_fleet": 256,
+    "seeds": [
+      256,
+      256,
+      256
+    ],
+    "lo": 256,
+    "hi": 256,
+    "last_sweep": [
+      {
+        "scale": 16,
+        "fleet_K": 64,
+        "overloaded": false,
+        "p99_ms": 31.56511703997241
+      },
+      {
+        "scale": 32,
+        "fleet_K": 128,
+        "overloaded": false,
+        "p99_ms": 32.05557669996765
+      },
+      {
+        "scale": 64,
+        "fleet_K": 256,
+        "overloaded": false,
+        "p99_ms": 235.75372611056156
+      },
+      {
+        "scale": 128,
+        "fleet_K": 512,
+        "overloaded": true,
+        "p99_ms": 3275.2318609299255
+      }
+    ]
+  }
+}
