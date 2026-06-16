@@ -104,12 +104,15 @@ sweep to **d=9 and d=11** past the H200's d=7:
 | **5** | 0.15% · 1024q | 7.90% · 512–768q | 0.55% · 12q |
 | **7** | 0.35%† · 256q | 15.2% · 192–256q | 0.60% · 3q |
 | **9** *(MI300X)* | 0.10% · 96q | 22.2% · 96q | — |
-| **11** *(MI300X)* | **0.05%** · 64q | **30.95%** · 48q | — |
+| **11** *(MI300X)* | 0.05% · 64q | 30.95% · 48q | — |
+| **13** *(MI300X)* | **0.00%** (0/2000) · 32q | **33.75%** · 32q | — |
 
 (LER and capacity per platform; matching/BP capacities for d≤7 agree closely
-across H200/MI300X. d=9/11 are MI300X-only (matching + min-sum BP). †d=7 matching
-LER is noise-limited at 2000 shots — 7/2000 — but the d=9/11 points confirm the
-monotone suppression: 0.10% → 0.05%.)
+across H200/MI300X. d=9–13 are MI300X-only (matching + min-sum BP), exploiting its
+192 GB; d=13 is Gu et al.'s max. †d=7 matching LER is noise-limited at 2000 shots
+— 7/2000 — but the d=9–13 points confirm the monotone suppression: 0.10% → 0.05%
+→ **0/2000**. At d=13 matching is a *perfect* decoder on these 2000 shots while BP
+fails a third of them.)
 
 Two clean findings, **identical across both vendors** (it's decoder physics):
 - **Capacity drops monotonically with distance** — bigger code = more
@@ -185,7 +188,9 @@ Findings:
 - **Best-tool routing wins on both axes.** Routing surface→matching + qLDPC→BP
   (the right tool per code) sustains **1536 q** on the MI300X — 1.5–3× the all-BP
   fleets — *and* is far more accurate on the surface lanes (matching ~0.1% vs BP
-  ~8%). The accuracy-optimal fleet is also the highest-capacity one.
+  ~8%). The accuracy-optimal fleet is also the highest-capacity one. (Adding a
+  *slower* lane re-confirms the bottleneck principle: a 4-lane best-tool fleet that
+  also carries d7-surface-matching drops to 512 q, gated by that slowest lane.)
 - **Cross-vendor, and AMD holds its own.** Mixed-distance is at **parity** (384 q
   on both). On mixed-family the **MI300X serves 2× the H200** (1024 vs 512 q) —
   its surface-d5 min-sum BP is faster on the rocm7/triton-3.4 stack. AMD isn't just

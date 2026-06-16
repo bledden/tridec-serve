@@ -27,9 +27,9 @@ for r in d["rows"]:
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5.5))
 for nm in sorted(data, key=lambda n: list(COL).index(n) if n in COL else 9):
     dm = data[nm]; ds = sorted(dm); c = COL.get(nm, "#555")
-    ler = np.array([dm[x][0] for x in ds])
+    ler = np.maximum(np.array([dm[x][0] for x in ds]), 0.03)   # floor for log axis
     lo = np.array([max(dm[x][1], 0.02) for x in ds]); hi = np.array([dm[x][2] for x in ds])
-    ax1.errorbar(ds, np.maximum(ler, 0.03), yerr=[ler - lo, np.maximum(hi - ler, 0)],
+    ax1.errorbar(ds, ler, yerr=[np.maximum(ler - lo, 0), np.maximum(hi - ler, 0)],
                  fmt="o-", color=c, capsize=3, label=nm)
     cap = np.array([max(dm[x][3], 0.5) for x in ds])
     clo = np.array([max(dm[x][4], 0.5) for x in ds]); chi = np.array([max(dm[x][5], 0.5) for x in ds])
