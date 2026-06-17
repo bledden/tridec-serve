@@ -6,12 +6,14 @@ generator. Two questions:
      Expectation: YES for Relay-BP (per-shot early-exit -> fewer legs when the
      batch is mostly idle), ~NO for min-sum BP (fixed 30 iterations regardless).
 """
-import json, numpy as np, stim, tridec
+import os, json, numpy as np, stim, tridec
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from serve import run_load
 
-FIX = "/Users/bledden/Documents/tridec/tests/fixtures/bb72/"
+HERE = os.path.dirname(os.path.abspath(__file__))
+# bundled fixtures by default; override with TRIDEC_FIX for a pod's repo path.
+FIX = os.environ.get("TRIDEC_FIX", os.path.join(HERE, "benchmark", "fixtures") + os.sep)
 dem = stim.DetectorErrorModel.from_file(FIX+"bb72_r6_p0.003_Z.dem")
 c   = stim.Circuit.from_file(FIX+"bb72_r6_p0.003_Z.stim")
 pool, _ = c.compile_detector_sampler(seed=0).sample(4096, separate_observables=True)
@@ -53,9 +55,9 @@ ax.set_ylabel("reaction latency p99 (ms)")
 ax.set_title("tridec-serve: heterogeneous load + high-K (round-batched load gen)\n"
              "× = couldn't keep up; dashed = 10% active (mostly-idle) load")
 ax.grid(alpha=0.3, which="both"); ax.legend(fontsize=8, loc="upper left")
-plt.tight_layout(); plt.savefig("/Users/bledden/Documents/tridec-serve/serve_hetero.png", dpi=150)
+plt.tight_layout(); plt.savefig(os.path.join(HERE, "serve_hetero.png"), dpi=150)
 json.dump({"t_round_ms": 1.0, "duration_s": DURATION, "max_sustained": summary, "results": results},
-          open("/Users/bledden/Documents/tridec-serve/serve_hetero.json", "w"), indent=2)
+          open(os.path.join(HERE, "serve_hetero.json"), "w"), indent=2)
 print("\nmax sustained logical qubits/GPU:")
 for k, v in summary.items():
     print(f"  {k}: {v}")

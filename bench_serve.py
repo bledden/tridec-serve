@@ -2,12 +2,14 @@
 reaction-latency tail + whether the GPU keeps up. Produces the measured
 'latency vs load' knee and the max sustained logical-qubits-per-GPU at an SLA
 — the real-system counterpart to make_figure.py's analytical model."""
-import json, numpy as np, stim, tridec
+import os, json, numpy as np, stim, tridec
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from serve import run_load
 
-FIX = "/Users/bledden/Documents/tridec/tests/fixtures/bb72/"
+HERE = os.path.dirname(os.path.abspath(__file__))
+# bundled fixtures by default; override with TRIDEC_FIX for a pod's repo path.
+FIX = os.environ.get("TRIDEC_FIX", os.path.join(HERE, "benchmark", "fixtures") + os.sep)
 dem = stim.DetectorErrorModel.from_file(FIX+"bb72_r6_p0.003_Z.dem")
 c   = stim.Circuit.from_file(FIX+"bb72_r6_p0.003_Z.stim")
 pool, _ = c.compile_detector_sampler(seed=0).sample(4096, separate_observables=True)
@@ -51,7 +53,7 @@ ax.set_ylabel("reaction latency p99 (ms)")
 ax.set_title("tridec-serve: measured p99 reaction latency vs offered load\n"
              "(live continuous-batching scheduler, Apple M4 Max / Metal; × = couldn't keep up)")
 ax.grid(alpha=0.3, which="both"); ax.legend(loc="upper left")
-plt.tight_layout(); plt.savefig("/Users/bledden/Documents/tridec-serve/serve_latency_vs_load.png", dpi=150)
+plt.tight_layout(); plt.savefig(os.path.join(HERE, "serve_latency_vs_load.png"), dpi=150)
 
 # max sustained qubits per GPU at each SLA (largest non-overloaded K with p99<=SLA)
 summary = {}
@@ -63,7 +65,7 @@ for algo, rows in results.items():
         summary[algo][f"{sla}ms"] = max(ok) if ok else 0
 json.dump({"t_round_ms": T_ROUND*1e3, "duration_s": DURATION,
            "results": results, "max_qubits_at_sla": summary},
-          open("/Users/bledden/Documents/tridec-serve/serve_measured.json", "w"), indent=2)
+          open(os.path.join(HERE, "serve_measured.json"), "w"), indent=2)
 print("\nmax sustained logical qubits/GPU at p99 SLA:")
 for algo, s in summary.items():
     print(f"  {algo}: " + ", ".join(f"{k}->{v}q" for k, v in s.items()))

@@ -1,8 +1,11 @@
-# tridec-serve — decode-serving prototype (LLM-serving × QEC, lane #3 spike)
+# tridec-serve — a decode-serving benchmark for QEC (LLM-serving × QEC)
 
-**Status:** research spike / proof-of-concept (1 figure). Built on
-[tridec](https://github.com/bledden/tridec). Companion to the scoping doc
-`lane3_llm_serving_x_qec_scoping_2026-06-14.md`.
+**Status:** research benchmark. Built on
+[tridec](https://github.com/bledden/tridec). This top-level README is the
+original first-order model + Metal spike; the full **cross-vendor benchmark**
+(Apple Metal / AMD MI300X / NVIDIA H200, six decoder families, incl. a
+head-to-head vs NVIDIA's CUDA-Q `nv-qldpc`) lives in
+[`benchmark/`](benchmark/README.md).
 
 ## Thesis
 
@@ -41,7 +44,7 @@ Peak throughput on this box (canonical BB `[[72,12,6]]` cell):
 | **superconducting** (1 µs/round) | **0.014** | **0.046** | 
 | **neutral-atom / trapped-ion** (1 ms/round) | **~14** | **~46** |
 
-**The honest, quantified takeaway** (the scoping doc's caveat, now measured):
+**The honest, quantified takeaway** (now measured):
 - At a **1 µs superconducting round**, even max throughput serves **<1 qubit/GPU
   in real time** → the sub-µs inner loop is **FPGA/ASIC territory**, not GPU.
   GPU decode-serving is *not* the play there.
@@ -160,4 +163,4 @@ a GPU, or the experimental Metal env.)
 - **Next:** (a) ✅ cross-vendor curves + live sweep on H200/MI300X — *done*
   (`decode_serving_xvendor.png`); (b) ✅ faster load gen + heterogeneous —
   *done*; (c) mixed code-distance fleets (the real heterogeneity lever); (d) the
-  QEC decode-serving benchmark (scoping idea #4 — the standard nobody's defined).
+  QEC decode-serving benchmark — the standard nobody's defined.

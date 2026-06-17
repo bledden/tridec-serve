@@ -2,8 +2,10 @@
 This is the empirical input to the decode-serving model: throughput B/L(B) and
 the latency curve determine how many logical-qubit syndrome streams one GPU can
 serve at a given SLA. Replays the canonical BB [[72,12,6]] cell from stim."""
-import time, json, sys, numpy as np, stim, tridec
-FIX = "/Users/bledden/Documents/tridec/tests/fixtures/bb72/"
+import os, time, json, sys, numpy as np, stim, tridec
+HERE = os.path.dirname(os.path.abspath(__file__))
+# bundled fixtures by default; override with TRIDEC_FIX for a pod's repo path.
+FIX = os.environ.get("TRIDEC_FIX", os.path.join(HERE, "benchmark", "fixtures") + os.sep)
 dem = stim.DetectorErrorModel.from_file(FIX+"bb72_r6_p0.003_Z.dem")
 c   = stim.Circuit.from_file(FIX+"bb72_r6_p0.003_Z.stim")
 NMAX = 2048
@@ -31,5 +33,5 @@ res["relay"] = {str(k): v for k, v in measure(relay, [1,4,16,64,256,1024,2048]).
 print("BP (fast path):")
 bp = tridec.from_dem(dem, algorithm="bp")
 res["bp"] = {str(k): v for k, v in measure(bp, [1,2,4,8,16,32,64,128,256,512,1024,2048]).items()}
-json.dump(res, open("/Users/bledden/Documents/tridec-serve/latency_metal.json","w"), indent=2)
+json.dump(res, open(os.path.join(HERE, "latency_metal.json"), "w"), indent=2)
 print("saved latency_metal.json")

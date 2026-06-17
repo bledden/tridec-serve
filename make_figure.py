@@ -13,11 +13,12 @@ Model (first-order, pipelined continuous batching):
     the GPU sustains K = throughput(B)*T_round = (B/L(B)) * T_round logical qubits.
 Empirical L(B) from tridec on the local accelerator (measure_latency.py).
 """
-import json, numpy as np
+import os, json, numpy as np
+HERE = os.path.dirname(os.path.abspath(__file__))
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-d = json.load(open("/Users/bledden/Documents/tridec-serve/latency_metal.json"))
+d = json.load(open(os.path.join(HERE, "latency_metal.json")))
 def curve(key):
     items = sorted((int(b), float(L)) for b, L in d[key].items())
     return np.array([b for b,_ in items]), np.array([L for _,L in items])
@@ -57,10 +58,10 @@ fig.text(0.5, 0.005, "Left: at a 1 us superconducting round even max throughput 
          "trapped-ion) one GPU serves 10s of logical qubits -> the GPU "
          "decode-serving regime.", ha="center", fontsize=8, color="0.3", wrap=True)
 plt.tight_layout(rect=[0,0.04,1,0.96])
-plt.savefig("/Users/bledden/Documents/tridec-serve/decode_serving_metal.png", dpi=150)
+plt.savefig(os.path.join(HERE, "decode_serving_metal.png"), dpi=150)
 json.dump({"model":"reaction~2L(B); K=throughput_within_SLA*T_round",
            "backend": d["backend"], "table": table},
-          open("/Users/bledden/Documents/tridec-serve/serving_metal.json","w"), indent=2)
+          open(os.path.join(HERE, "serving_metal.json"), "w"), indent=2)
 # headline numbers
 for key,name,_ in decoders:
     B,L = curve(key)
