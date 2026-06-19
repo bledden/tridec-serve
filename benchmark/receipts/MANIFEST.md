@@ -28,7 +28,7 @@ tridec GPU lanes need a triton backend; the `nv-qldpc`/TN lanes need CUDA.
 | `results_mi300x.json` | AMD MI300X, ROCm7 (DigitalOcean; torch 2.9+rocm7 / triton 3.4) | 2000 · 3 | v3 — BB + surface d=3/5/7 (all decoders) **+ d=9..13 (matching + min-sum BP)**; relay re-tuned (1024,16) for rocm7 |
 | `results_fleet_extra_mi300x.json` | AMD MI300X, ROCm7 | per-lane · 3 | v4 extras — best-tool fleet (matching+BP, 1536q) + d3+d5+d7+d9 fleet (256q) |
 | `results_dist_d9d11_mi300x.json` | AMD MI300X, ROCm7 | 2000 · 3 | raw d=9/d=11 distance rows (merged into results_mi300x.json) |
-| `results_metal.json` | Apple M4 Max, Metal (triton-metal) | 2000 · 1 | v1 — BB + surface d=5 (single-seed, pre-CI vintage; not re-run with the multi-seed harness) |
+| `results_metal.json` | Apple M4 Max, Metal (triton-msl) | 2000 · 1 | v1 — BB + surface d=5 (single-seed, pre-CI vintage; not re-run with the multi-seed harness) |
 | `results_fleet_h200.json` | NVIDIA H200, CUDA | per-lane · 3 | v4 — mixed-distance (384q) + mixed-family (512q) fleets, tridec BP per lane |
 | `results_fleet_mi300x.json` | AMD MI300X, ROCm7 (DigitalOcean) | per-lane · 3 | v4 — mixed-distance (384q) + mixed-family (1024q) fleets, tridec BP per lane |
 | `benchmark_pareto_{h200,mi300x,metal}.png` | — | — | accuracy-vs-capacity Pareto per platform (v3; error bars where multi-seed) |

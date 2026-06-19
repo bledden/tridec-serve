@@ -15,7 +15,7 @@ sinter                     # stim sampling helpers
 # GPU decoder library (the tridec relay/min-sum BP lanes). Install separately
 # with the right extra for your accelerator; it brings torch + triton:
 #   pip install "tridec[torch]"           # CUDA / ROCm (triton backend)
-#   (Apple Metal: the experimental triton-metal env — see tridec docs)
+#   (Apple Metal: the experimental triton-msl env — see tridec docs)
 # tridec>=0.2.1
 #
 # NVIDIA CUDA-Q QEC decoders (nv-qldpc + tensor-network) — CUDA-ONLY, optional.
