@@ -14,12 +14,14 @@ sinter                     # stim sampling helpers
 #
 # GPU decoder library (the tridec relay/min-sum BP lanes). Install separately
 # with the right extra for your accelerator; it brings torch + triton:
-#   pip install "tridec[torch]"           # CUDA / ROCm (triton backend)
+#   pip install "tridec[torch]==0.2.1"    # CUDA / ROCm (triton backend)
 #   (Apple Metal: the experimental triton-msl env — see tridec docs)
-# tridec>=0.2.1
+# tridec==0.2.1  — pin, don't float: every receipt was measured on 0.2.1, and
+#   tridec master has since changed defaults (cuda_graph auto-on) and lifted the
+#   d>=15 BP ceiling (46c63a4), so a floating install won't reproduce receipts.
 #
 # NVIDIA CUDA-Q QEC decoders (nv-qldpc + tensor-network) — CUDA-ONLY, optional.
 # Auto-skipped on AMD/Metal (that's the vendor-lock point). On ROCm7 the relay
-# megakernel wants re-tuning (see ../relay_retune.py).
+# megakernel wants re-tuning (see relay_retune.py, this directory).
 #   pip install cudaq-qec                  # then: pip install -U "nvidia-nvjitlink-cu12>=12.5"
 #   pip install "cudaq-qec[tensor-network-decoder]"   # for the TN entry

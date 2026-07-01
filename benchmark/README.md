@@ -1,4 +1,4 @@
-# QEC decode-serving benchmark (v4)
+# QEC decode-serving benchmark (v4+)
 
 A **vendor-portable, decoder-agnostic** benchmark for quantum error-correction
 decoders that adds the axis existing benchmarks miss — measured across
@@ -61,20 +61,23 @@ sustained logical qubits/GPU at a 1 ms round (bounded backlog); `peak` = peak
 throughput (syn/s).
 
 LER % (95% Wilson CI) · sustained qubits/GPU (median of 3 seeds [min–max]).
-2000 shots, p=0.003.
+2000 shots, p=0.003, **tridec 0.2.1** — except the MI300X/H200 surface-d5
+min-sum-BP and matching LERs, which are the better-powered **50k-shot** rerun
+(the same raw rows as the distance table below; the original 2000-shot rows
+were superseded in-place by that rerun).
 
 | code | decoder | Metal (M4 Max) | MI300X (ROCm7)‡ | H200 (CUDA) |
 |---|---|---|---|---|
-| **BB qLDPC** | tridec Relay-BP | 1.95% · 8q | 1.80% · 16q [6-16] | 1.95% · **16q [12-16]** |
+| **BB qLDPC** | tridec Relay-BP | 1.95% · 8q | 1.80% · 16q [6-16] | 1.95% · **16q [8-16]** |
 | | tridec min-sum BP | 8.40% · 32q | 7.80% · **1024q** | 7.80% · **1024q** |
 | | `ldpc` BP-OSD (CPU) | 1.55% · 0q | **1.15%** · 0q | 1.15% · 0q |
 | | `relay_bp` oracle (CPU) | 1.75% · 0q | 1.40% · 0q | 1.40% · 0q |
 | | **NVIDIA `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **1.45% · 12q [8-12]** |
-| | **NVIDIA pre-decode cascade** | — *(CUDA-only)* | — *(CUDA-only)* | **1.25% · 2q [2-3]** |
-| **surface d=5** | tridec Relay-BP | 1.30% · 0q | 1.60% · 0q | 1.60% · 1q [0-1] |
-| | tridec min-sum BP | 7.65% · 16q | 7.90% · 768q | 7.90% · 512q |
-| | **PyMatching MWPM** | **0.10% · 1536q** | **0.15% · 1024q** | **0.15% · 1024q** |
-| | **NVIDIA `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **0.55% · 12q [8-12]** |
+| | **NVIDIA pre-decode cascade** | — *(CUDA-only)* | — *(CUDA-only)* | **1.25% · 3q [2-3]** |
+| **surface d=5** | tridec Relay-BP | 1.30% · 0q | 1.60% · 0q | 1.60% · 1q [1-1] |
+| | tridec min-sum BP | 7.65% · 16q | 8.66% · 768q | 8.66% · 512q |
+| | **PyMatching MWPM** | **0.10% · 1536q** | **0.29% · 1024q** | **0.29% · 1024q** |
+| | **NVIDIA `nv-qldpc`+OSD** | — *(CUDA-only)* | — *(CUDA-only)* | **0.55% · 8q [8-8]** |
 | | **NVIDIA tensor-network** | — | — | *intractable at d=5* † |
 
 ‡ MI300X = a DigitalOcean MI300X droplet on **ROCm 7 / triton 3.4**. (RunPod's
@@ -88,10 +91,10 @@ recovers 16q (parity with the H200). min-sum BP & matching needed no re-tune
 
 † TN decoder is exact-ish but **intractable at surface d=5/5-rounds** (TN
 treewidth blows up; >90 s/decode). Measured at small scale: surface d=3/3-rounds
-≈ 5% LER at ~4 decodes/s (→ 0 q served). It's an accuracy decoder that can't
+≈ 5% LER at ~4 decodes/s (→ 0 q served; measured on-pod, stdout not archived). It's an accuracy decoder that can't
 serve and doesn't scale — a clean negative.
 
-## Surface-code distance sweep (v3) — `benchmark_distance_{h200,mi300x}.png`
+## Surface-code distance sweep (v3, extended to d=13 in v4+) — `benchmark_distance_{h200,mi300x}.png`
 
 The serving question that only this benchmark asks of code distance: **stronger
 protection costs serving capacity.** Full sweep **d=3..13 on BOTH the H200 and the
@@ -119,12 +122,16 @@ each step (clean threshold; the old d=7 "0.35%" wiggle was noise, now 0.140%), a
 at d=13 matching gives **0.010% (5/50000) — ~3500× lower LER than BP**.
 
 **Device-max (192 GB vs 141 GB — the honest answer): both GPUs cap at the same
-d=13.** Pushing further, *both* wall at **d=15** with a tridec BP triton-kernel
+d=13** (the odd-d sweep; d=14 also works, d=15 fails — see
+`receipts/KNOWN_LIMIT_d15_bp_kernel.md`). Pushing further, *both* wall at **d=15** with a tridec BP triton-kernel
 error (`[HIP] invalid argument` on MI300X, `[CUDA] invalid argument` on H200) — a
 **kernel limit, not memory or vendor**: d=13 is only 2184 detectors, nowhere near
 either GPU's memory. The MI300X's 192 GB confers no higher-d reach here; the
 ceiling is tridec's BP kernel (matching/CPU has no such cap). A real, documented
-limitation surfaced by the max-probe — not a memory story.
+limitation surfaced by the max-probe — not a memory story. **Vintage note:**
+this is the **tridec 0.2.1** ceiling; it has since been lifted on tridec master
+(`46c63a4`, 1-D grid) but is in no PyPI release and unmeasured here — the d≥15
+frontier is the queued re-run.
 
 Two clean findings, **identical across both vendors** (it's decoder physics):
 - **Capacity drops monotonically with distance** — bigger code = more
@@ -141,8 +148,8 @@ Two clean findings, **identical across both vendors** (it's decoder physics):
 
 Findings (BB qLDPC + d=5 slice):
 - **Right tool per code.** On **surface**, matching dominates *both* axes
-  (0.10–0.15%, ~1024–1536 q/GPU) — the specialized decoder beats every BP-family
-  decoder outright. On **BB qLDPC** (matching N/A), it's a BP + capacity story:
+  — the specialized decoder beats every BP-family
+  decoder outright (0.10–0.29%, ~1024–1536 q/GPU). On **BB qLDPC** (matching N/A), it's a BP + capacity story:
   the accurate decoders (BP-OSD, relay, `nv-qldpc`) sit at ~1–2% LER, the fast GPU
   min-sum BP trades accuracy (~8%) for **1024 q/GPU**.
 - **Vendor-portable, and datacenter GPUs scale the capacity ~30×.** The *same*
@@ -153,12 +160,13 @@ Findings (BB qLDPC + d=5 slice):
   concrete.** CUDA-Q `nv-qldpc`+OSD is **accurate** (1.45% BB, 0.55% surface —
   competitive with relay/BP-OSD) and **sustains ~12 q/GPU** at a 1 ms round. At
   the accurate tier it's neck-and-neck with tridec Relay-BP (1.95% · 16 q): the
-  CIs overlap on accuracy and the knee bands ([8-12] vs [12-16]) nearly touch —
+  CIs overlap on accuracy and the knee bands ([8-12] vs [8-16]) overlap —
   genuinely Pareto-close, neither dominates. (tridec's *fast* min-sum BP serves
   1024 q at ~8% LER — a different point on the curve.) The serving cap is
   `nv-qldpc`'s **~18 ms per-batch latency** (heavy BP iterations): its *raw*
   large-batch throughput is ~54k syn/s (≈50 q ceiling under a production
-  scheduler), but the
+  scheduler; the 18 ms / 54k figures are on-pod measurements whose stdout was
+  not archived in receipts — indicative, not receipt-backed), but the
   per-batch latency bounds sustained-K at a tight reaction-latency SLA — the same
   prototype-scheduler caveat applies to every decoder here. **Two non-default
   knobs are required to be fair to it:** `use_osd=True` (default BP-only ≈ 5% LER)
@@ -168,7 +176,7 @@ Findings (BB qLDPC + d=5 slice):
 - **Pre-decode stage (v2) — architecture works; cheap pre is the missing piece.**
   The cascade (a fast BP-only pre-pass → accurate +OSD on the *residual*
   syndrome, results combined) is **more accurate** (1.25% vs 1.45% for `nv-qldpc`
-  alone) but serves **less** (2 q vs 12 q): the BP-proxy pre-pass is a *second*
+  alone) but serves **less** (3 q vs 12 q): the BP-proxy pre-pass is a *second*
   decode, so it costs throughput. A serving win needs a genuinely *cheap* pre —
   exactly what NVIDIA's Ising AI pre-decoder is. The plumbing is correct and
   ready; the cheap-pre slot is where Ising would drop in.
@@ -278,8 +286,8 @@ bundled in `fixtures/`; deps pinned in `requirements.txt`; artifact provenance i
 pip install -r requirements.txt                  # + "tridec[torch]" for GPU lanes; cudaq-qec on CUDA
 TRIDEC_PLAT=h200 python qecserve_bench.py         # accuracy + serving matrix -> results_h200.json
 python make_pareto.py h200                        # accuracy-vs-capacity Pareto
-python make_distance.py h200                      # surface distance sweep d=3/5/7
-TRIDEC_PLAT=h200 python fleetbench.py             # v4 fleets -> results_fleet_h200.json
+python make_distance.py h200                      # surface distance sweep d=3..13
+TRIDEC_PLAT=h200 python ../fleetbench.py          # v4 fleets (script at repo root) -> results_fleet_h200.json here
 python make_fleet.py h200                         # v4 fleet knee figure
 ```
 The `cudaq-qec` (NVIDIA `nv-qldpc` + TN) lanes are CUDA-only and **auto-skip** on
@@ -290,10 +298,14 @@ AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tunin
 
 - **Prototype scheduler** (`../serve.py`, Python-threaded) → serving numbers are
   a pessimistic lower bound; a production server (out-of-process worker,
-  CUDA-graph bucket shapes) would do better.
+  CUDA-graph bucket shapes) would do better. All serving numbers were measured
+  with **tridec 0.2.1**; tridec master has since made a CUDA-graph fast path
+  default-on (`46c63a4`, 1.59× at batch-1), which shifts exactly the small-batch
+  accurate-tier knees (relay, the `nv-qldpc` head-to-head) — re-measure on the
+  next tridec release.
 - ✅ **Multi-seed knee bands (v2).** The serving knee is now median-of-3-seeds
   with a [min–max] band + a finer K grid in the contested 0–64 zone, so the
-  accurate-tier head-to-head (`nv-qldpc` [8-12] vs Relay-BP [12-16]) is
+  accurate-tier head-to-head (`nv-qldpc` [8-12] vs Relay-BP [8-16]) is
   statistically legible, not a single coarse point.
 - ✅ **Two codes, 6 decoder families, 3 vendors** (Metal / MI300X / H200) — done.
 - ✅ **NVIDIA CUDA-Q `nv-qldpc` head-to-head** (H200) — done, fair config
@@ -311,8 +323,11 @@ AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tunin
   mixed-distance 384 q (H200 = MI300X); mixed-family 512 q (H200) / **1024 q
   (MI300X)**; best-tool (matching+BP) **1536 q (MI300X)**. The vendor-neutrality
   lever, above.
-- ✅ **Distance sweep pushed to d=9/11/13 on the MI300X** (coverage; fits either GPU) — past the H200's
-  d=7; matching suppresses to 0.05% LER while BP climbs to ~31%.
-- **Next:** drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
+- ✅ **Distance sweep pushed to d=9/11/13 on BOTH GPUs** (50k-shot LER; H200
+  parity commit `1a52616`) — matching suppresses to 0.010% LER while BP climbs
+  to 34.65% at d=13 (table above).
+- **Next:** the **d≥15 frontier** (ceiling lifted on tridec master `46c63a4` —
+  needs a tridec 0.2.2 release or a git-pinned install, plus one pod window);
+  drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
   CUDA-graph scheduler to lift the prototype's pessimistic serving floor; then the
   arXiv writeup (repro gate is cleared — see `receipts/`).

@@ -3,11 +3,14 @@ rocm7/triton-3.4 stack -- the shipped gfx942 config (512,8) was autotuned on
 rocm6.2/triton-3.1 and under-performs here. Times BB relay decode_batch(1024)
 across candidate configs; the winner is what we use for parity. (min-sum BP is
 already at parity, so only relay is swept.)"""
-import time, numpy as np, stim, tridec
+import os, time, numpy as np, stim, tridec
 import tridec.backends.megakernel as mk
 
-dem = stim.DetectorErrorModel.from_file("/workspace/bench/fixtures/bb72_r6_p0.003_Z.dem")
-c = stim.Circuit.from_file("/workspace/bench/fixtures/bb72_r6_p0.003_Z.stim")
+# bundled fixtures by default; override with TRIDEC_FIX for a pod's repo path.
+FIX = os.environ.get("TRIDEC_FIX", os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "fixtures") + os.sep)
+dem = stim.DetectorErrorModel.from_file(FIX + "bb72_r6_p0.003_Z.dem")
+c = stim.Circuit.from_file(FIX + "bb72_r6_p0.003_Z.stim")
 det, _ = c.compile_detector_sampler(seed=0).sample(2000, separate_observables=True)
 det = np.ascontiguousarray(np.asarray(det, bool))
 B = 1024

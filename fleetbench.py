@@ -16,7 +16,9 @@ import sys, os, json, numpy as np, stim
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fleet_serve import run_fleet_load, max_sustained_fleet
 
-FIX = os.environ.get("TRIDEC_FIX", "/workspace/bench/fixtures/")
+# bundled fixtures by default; override with TRIDEC_FIX for a pod's repo path.
+FIX = os.environ.get("TRIDEC_FIX", os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "benchmark", "fixtures") + os.sep)
 P = 0.003
 SHOTS = 1500
 

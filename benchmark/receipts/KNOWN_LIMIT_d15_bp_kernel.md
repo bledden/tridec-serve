@@ -1,7 +1,9 @@
 # Known limit: tridec BP triton kernel fails at surface d≥15 (issue draft)
 
-**Status:** documented ceiling, reproducible on both CUDA and ROCm. Draft for a
-`github.com/bledden/tridec` issue — file when convenient (contributions welcome).
+**Status:** **FIXED on tridec master** — `46c63a4` "lift surface d>=15 BP
+ceiling (1-D grid)" (2026-06-17) — but in **no PyPI release yet** (latest:
+0.2.1, which has the ceiling). This receipt documents the 0.2.1 behavior the
+benchmark measured; the d≥15 re-measure is queued for the next release.
 
 ## Summary
 `RelayBpDecoder(algorithm="bp").decode_batch(...)` raises a Triton launch error at
@@ -40,4 +42,5 @@ kernel-side grid-sizing assumption, not a vendor/driver bug.
 Cap/tile the `_bit_update_kernel` grid (the bit-update grid scales with detectors ×
 batch; at d=15 it overflows the max grid dimension) — chunk the grid or 2D-tile it
 so the launch stays within limits. Until then: **surface d≤14 is the supported
-range for the GPU BP lane** (matching/CPU is unbounded).
+range for the GPU BP lane on tridec ≤0.2.1** (matching/CPU is unbounded).
+Upstream fixed it exactly this way (1-D grid tiling, `46c63a4`).

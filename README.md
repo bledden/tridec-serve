@@ -97,6 +97,12 @@ Same code (the v0.2.1 default decoders), measured on Metal (M4 Max), NVIDIA H200
 \* the live BP runs are capped at the sweep's max offered load (K=256), not BP's
 knee — the Python load generator, not the decoder, is the limit there.
 
+† vintage note: the MI300X **relay** rows here (11 model / live 8) — and the
+knee-table relay row below — are the rocm6.2-era runs with the shipped (512,8)
+megakernel config. The benchmark's rocm7 re-tune ((1024,16),
+`benchmark/relay_retune.py`) recovers **live 16 — H200 parity**; see
+`benchmark/README.md` ‡.
+
 Two honest findings:
 - **Relay-BP (the accurate default) is compute-bound and portable** — ~11–18
   qubits/GPU everywhere. The relay schedule itself is the cost; the GPU is
@@ -142,6 +148,7 @@ python make_figure.py         # analytical model + figure -> decode_serving_meta
 python bench_serve.py         # LIVE scheduler load sweep -> serve_latency_vs_load.png
 python make_xvendor.py        # combined cross-vendor figure -> decode_serving_xvendor.png
 python bench_hetero.py        # round-batched load gen, high-K + heterogeneous -> serve_hetero.json
+#   (rename to serve_hetero_<plat>.json — make_knee.py overlays both platforms' files)
 python make_knee.py           # the ~1024-qubit knee figure -> decode_serving_knee.png
 ```
 (needs tridec installed for the local backend: `pip install "tridec[torch]"` +
@@ -162,5 +169,7 @@ a GPU, or the experimental Metal env.)
   not pursued further unless a per-shot-adaptive-bulk decoder motivates it.
 - **Next:** (a) ✅ cross-vendor curves + live sweep on H200/MI300X — *done*
   (`decode_serving_xvendor.png`); (b) ✅ faster load gen + heterogeneous —
-  *done*; (c) mixed code-distance fleets (the real heterogeneity lever); (d) the
-  QEC decode-serving benchmark — the standard nobody's defined.
+  *done*; (c) ✅ mixed code-distance / mixed-family fleets — *done* (v4,
+  [`benchmark/`](benchmark/README.md)); (d) ✅ the QEC decode-serving benchmark —
+  **done**: [`benchmark/`](benchmark/README.md) (cross-vendor, six decoder
+  families, fleets, receipts).
