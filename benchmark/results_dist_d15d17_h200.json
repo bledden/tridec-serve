@@ -1,0 +1,59 @@
+{
+  "tridec_version": "0.2.2",
+  "plat": "h200",
+  "shots": 2000,
+  "rows": [
+    {
+      "code": "surface d=15",
+      "detectors": 3360,
+      "decoder": "PyMatching MWPM (accurate)",
+      "shots": 2000,
+      "fails": 0,
+      "ler": 0.0,
+      "ler_ci95": [
+        0.0,
+        0.0019171176005129348
+      ],
+      "below_floor": true
+    },
+    {
+      "code": "surface d=15",
+      "detectors": 3360,
+      "decoder": "tridec min-sum BP",
+      "shots": 2000,
+      "fails": 786,
+      "ler": 0.393,
+      "ler_ci95": [
+        0.37181886496922406,
+        0.41459139819728574
+      ],
+      "below_floor": false
+    },
+    {
+      "code": "surface d=17",
+      "detectors": 4896,
+      "decoder": "PyMatching MWPM (accurate)",
+      "shots": 2000,
+      "fails": 0,
+      "ler": 0.0,
+      "ler_ci95": [
+        0.0,
+        0.0019171176005129348
+      ],
+      "below_floor": true
+    },
+    {
+      "code": "surface d=17",
+      "detectors": 4896,
+      "decoder": "tridec min-sum BP",
+      "shots": 2000,
+      "fails": 885,
+      "ler": 0.4425,
+      "ler_ci95": [
+        0.4208627497717703,
+        0.46435771875228865
+      ],
+      "below_floor": false
+    }
+  ]
+}

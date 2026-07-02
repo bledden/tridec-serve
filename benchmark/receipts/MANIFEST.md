@@ -34,6 +34,7 @@ tridec GPU lanes need a triton backend; the `nv-qldpc`/TN lanes need CUDA.
 | `results_fleet_extra_h200.json` | NVIDIA H200, CUDA | per-lane · 3 | v4 extras — best-tool fleet (768q) + d3+d5+d7+d9 fleet (128q) |
 | `results_dist_d9d11_h200.json` | NVIDIA H200, CUDA | 2000 · 3 | raw d=9/d=11 distance rows (merged into results_h200.json) |
 | `results_dist_d13_{h200,mi300x}.json` | both | 2000 · 3 | raw d=13 rows (capacity; the d=13 LER in the README is the 50k rerun) |
+| `results_dist_d15d17_h200.json` | NVIDIA H200, CUDA (**tridec 0.2.2**) | 2000 | d=15/17 frontier past the lifted BP-kernel ceiling (`46c63a4`): BP 39.30% / 44.25%, matching below the 2k floor. 2000 shots (BP ~200 ms/shot at d>=15 → 50k infeasible). `../../d15_extend.py` |
 | `results_hishot_dist_{h200,mi300x}.json` | both | **50k** | 50k-shot LER ladder d=3..13 — the accuracy numbers in the README tables (bit-identical across platforms) |
 | `results_bigfleet_{h200,mi300x}.json` | both | per-lane · 3 | 4-lane best-tool fleet incl. a d7-matching lane (512q both — the bottleneck-lane check) |
 | `results_seeds5_{h200,mi300x}.json` | both | per-lane · 5 | median-of-5 stability: MI300X best-tool band [768–1536] (CPU jitter), mixed-family solid |

@@ -108,6 +108,15 @@ AMD MI300X** (ROCm7), accuracy at **50k shots** (Wilson CI):
 | **9** | 0.068% [0.05–0.10] | 22.18% | ~64–128 |
 | **11** | 0.018% [0.01–0.03] | 29.15% | ~48–128 |
 | **13** | **0.010%** [0.004–0.02] | **34.65%** | ~24–32 |
+| **15** ‖ | <0.05% (0/2000) | **39.30%** [37.2–41.5] | — |
+| **17** ‖ | <0.05% (0/2000) | **44.25%** [42.1–46.4] | — |
+
+‖ **d=15/17 added on tridec 0.2.2** (the d≥15 BP-kernel-ceiling lift, `46c63a4`),
+H200, **2000 shots** — min-sum BP is ~200 ms/shot at these sizes, so the ladder's
+50k methodology is ~3 h/point here; BP's ~40% LER is well-resolved at 2000, and
+matching stays below the 2000-shot floor (`0/2000`, <0.05%). A tight matching LER
+at d≥15 is a cheap CPU-only follow-on (no GPU). LER is hardware-independent, so
+the single-GPU H200 row is canonical.
 
 **Accuracy (LER) is hardware-independent** — bit-identical across H200 and MI300X
 (`benchmark_accuracy_parity.png` shows the two LER columns side by side, identical
@@ -121,17 +130,17 @@ H200↔MI300X range). The 50k shots dissolved the 2000-shot noise — matching ~
 each step (clean threshold; the old d=7 "0.35%" wiggle was noise, now 0.140%), and
 at d=13 matching gives **0.010% (5/50000) — ~3500× lower LER than BP**.
 
-**Device-max (192 GB vs 141 GB — the honest answer): both GPUs cap at the same
-d=13** (the odd-d sweep; d=14 also works, d=15 fails — see
-`receipts/KNOWN_LIMIT_d15_bp_kernel.md`). Pushing further, *both* wall at **d=15** with a tridec BP triton-kernel
-error (`[HIP] invalid argument` on MI300X, `[CUDA] invalid argument` on H200) — a
-**kernel limit, not memory or vendor**: d=13 is only 2184 detectors, nowhere near
-either GPU's memory. The MI300X's 192 GB confers no higher-d reach here; the
-ceiling is tridec's BP kernel (matching/CPU has no such cap). A real, documented
-limitation surfaced by the max-probe — not a memory story. **Vintage note:**
-this is the **tridec 0.2.1** ceiling; it has since been lifted on tridec master
-(`46c63a4`, 1-D grid) but is in no PyPI release and unmeasured here — the d≥15
-frontier is the queued re-run.
+**The d=13 "wall" was a decoder-version limit — now lifted and measured past.**
+On **tridec 0.2.1** the two-kernel BP path launched on a 2-D grid whose unit
+dimension (bit/check count) capped at 65535, so surface BP failed identically at
+**d=15** on both CUDA and HIP (`invalid argument` on kernel launch) — a kernel
+limit, *not* memory or vendor (d=13 is only 2184 detectors; both GPUs have
+≥140 GB, and the MI300X's 192 GB bought no extra reach). **tridec 0.2.2 lifts it**
+(`46c63a4`, 1-D flattened grid, bit-identical), and the ladder now runs past the
+old wall — measured live on the H200: **d=15 (3360 detectors) → BP 39.30%, d=17
+(4896) → BP 44.25%**, matching below the floor throughout (table above). So the
+192-vs-141 GB memory story was never the ceiling, and the kernel ceiling itself
+is now gone.
 
 Two clean findings, **identical across both vendors** (it's decoder physics):
 - **Capacity drops monotonically with distance** — bigger code = more
@@ -326,8 +335,10 @@ AMD/Metal — that's the point. On AMD/ROCm7 the relay megakernel wants re-tunin
 - ✅ **Distance sweep pushed to d=9/11/13 on BOTH GPUs** (50k-shot LER; H200
   parity commit `1a52616`) — matching suppresses to 0.010% LER while BP climbs
   to 34.65% at d=13 (table above).
-- **Next:** the **d≥15 frontier** (ceiling lifted on tridec master `46c63a4` —
-  needs a tridec 0.2.2 release or a git-pinned install, plus one pod window);
-  drop in NVIDIA's **Ising** if public; neural decoders; out-of-process /
-  CUDA-graph scheduler to lift the prototype's pessimistic serving floor; then the
-  arXiv writeup (repro gate is cleared — see `receipts/`).
+- ✅ **d≥15 frontier — done** (tridec **0.2.2** lifted the ceiling; measured live
+  on the H200: d=15 BP 39.30%, d=17 BP 44.25%, matching below floor — the distance
+  table above). `d15_extend.py` → `results_dist_d15d17_h200.json`.
+- **Next:** drop in NVIDIA's **Ising** if public; neural decoders; a tight
+  matching LER at d≥15 (cheap CPU-only, millions of shots, no GPU); out-of-process
+  / CUDA-graph scheduler to lift the prototype's pessimistic serving floor; then
+  the arXiv writeup (repro gate is cleared — see `receipts/`).

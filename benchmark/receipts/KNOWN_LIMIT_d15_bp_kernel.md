@@ -1,9 +1,11 @@
 # Known limit: tridec BP triton kernel fails at surface d≥15 (issue draft)
 
-**Status:** **FIXED on tridec master** — `46c63a4` "lift surface d>=15 BP
-ceiling (1-D grid)" (2026-06-17) — but in **no PyPI release yet** (latest:
-0.2.1, which has the ceiling). This receipt documents the 0.2.1 behavior the
-benchmark measured; the d≥15 re-measure is queued for the next release.
+**Status:** **FIXED and RELEASED** — `46c63a4` "lift surface d>=15 BP ceiling
+(1-D grid)", shipped in **tridec 0.2.2** (PyPI). The d≥15 re-measure is **done**:
+on tridec 0.2.2, d=15 (3360 detectors) and d=17 (4896) decode live on the H200 —
+min-sum BP 39.30% / 44.25% LER, matching below the 2000-shot floor
+(`../results_dist_d15d17_h200.json`, `../../d15_extend.py`). This receipt
+documents the original 0.2.1 ceiling that the d=3..13 ladder was measured under.
 
 ## Summary
 `RelayBpDecoder(algorithm="bp").decode_batch(...)` raises a Triton launch error at
